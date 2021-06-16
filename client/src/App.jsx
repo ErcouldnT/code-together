@@ -1,11 +1,25 @@
-import React, { useState } from 'react'
-import './assets/App.css'
+import React from 'react'
+import TextEditor from "./Editor"
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Redirect,
+} from "react-router-dom"
+import { v4 as uuidV4 } from "uuid"
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <h1>Hi, let's code together!</h1>
+    <Router>
+      <Switch>
+        <Route path="/" exact>
+          <Redirect to={`/documents/${uuidV4()}`} />
+        </Route>
+        <Route path="/documents/:id">
+          <TextEditor />
+        </Route>
+      </Switch>
+    </Router>
   )
 }
 

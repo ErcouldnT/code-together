@@ -1,22 +1,23 @@
-# code-together
+# Code together!
 *An Express, Socket.io, React project to work together on a single webpage simultaneously.*
 
 ## Used technologies:
 ### Backend
-> express \
-socket.io \
-mongoose
+> Express \
+Socket.io \
+Mongoose \
+Dotenv
 
 ### Frontend
-> vite \
-react \
-quill \
-uuid \
-socket.io-client \
-react-router-dom
+> Vite \
+React \
+Quill \
+Uuid \
+Socket.io-client \
+React-router-dom
 
 ### Development
-nodemon
+> Nodemon
 
 ## Link to recent app
 > https://together.erkuttekoglu.com \
