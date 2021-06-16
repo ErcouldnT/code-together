@@ -1,0 +1,33 @@
+{
+  "name": "code-together",
+  "version": "1.0.0",
+  "description": "An Express, Socket.io, React project to work together on a single webpage simultaneously. ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server",
+    "dev": "nodemon server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ErcouldnT/code-together.git"
+  },
+  "keywords": [
+    "express",
+    "react",
+    "socket.io"
+  ],
+  "author": "Ercode",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ErcouldnT/code-together/issues"
+  },
+  "homepage": "https://github.com/ErcouldnT/code-together#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.12.14",
+    "socket.io": "^4.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
+}
