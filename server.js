@@ -1,11 +1,12 @@
-const app = require('express')();
+const path = require('path');
+const express = require('express');
+const app = express();
+// app.enable('trust proxy');
 const mongoose = require("mongoose");
 const Document = require("./model/Document");
 require('dotenv').config();
 
-app.get('/', (req, res) => {
-  res.send('Hello World');
-});
+app.use('/', express.static(path.join(__dirname, 'client', 'dist')));
 
 mongoose.connect(process.env.MONGO_URI, {
   useCreateIndex: true,
@@ -21,12 +22,7 @@ const server = app.listen(process.env.PORT || 5000, () => {
   console.log('Listening on http://' + host + ':' + port + '/');
 });
 
-const io = require('socket.io')(server, {
-  cors: {
-    origin: process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://together.erkuttekoglu.com",
-    methods: ["GET", "POST"],
-  }
-});
+const io = require('socket.io')(server);
 
 const defaultValue = "";
 

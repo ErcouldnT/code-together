@@ -23,7 +23,7 @@ export default function TextEditor() {
   const [quill, setQuill] = useState()
 
   useEffect(() => {
-    const s = io(process.env.NODE_ENV === "development" ? "http://localhost:9999" : "https://together.erkuttekoglu.com")
+    const s = io()
     setSocket(s)
 
     return () => {
