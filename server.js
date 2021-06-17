@@ -8,6 +8,10 @@ require('dotenv').config();
 
 app.use('/', express.static(path.join(__dirname, 'client', 'dist')));
 
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname + '/client/dist/index.html'));
+});
+
 mongoose.connect(process.env.MONGO_URI, {
   useCreateIndex: true,
   useNewUrlParser: true,
