@@ -1,9 +1,9 @@
 # Code together!
-*An Express, Socket.io, React project to work together on a single webpage simultaneously.*
+An Express, Socket.io, React project to work together on a single webpage simultaneously.
 
 ## How it works?
-Just go to https://together.erkuttekoglu.com/`(NAME_HERE)` and Boom!\
-*Don't forget to send the same link to your friends...*
+Just go to https://together.erkuttekoglu.com and Boom! You can also create your own url. \
+*Don't forget to send the same url to your friends so they can join you.*
 
 ## Used technologies:
 ### Backend
