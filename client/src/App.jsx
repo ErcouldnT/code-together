@@ -7,14 +7,17 @@ import {
   Route,
   Redirect,
 } from "react-router-dom"
-import { v4 as uuidV4 } from "uuid"
+const { customAlphabet } = require('nanoid')
+
+const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+const nanoid = customAlphabet(alphabet, 5)  // https://zelark.github.io/nano-id-cc
 
 function App() {
   return (
     <Router>
       <Switch>
         <Route path="/" exact>
-          <Redirect to={`/${uuidV4()}`} />
+          <Redirect to={`/${nanoid()}`} />
         </Route>
         <Route path="/:id">
           <TextEditor />
