@@ -7,7 +7,7 @@ import {
   Route,
   Redirect,
 } from "react-router-dom"
-const { customAlphabet } = require('nanoid')
+import { customAlphabet } from 'nanoid'
 
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 const nanoid = customAlphabet(alphabet, 5)  // https://zelark.github.io/nano-id-cc
