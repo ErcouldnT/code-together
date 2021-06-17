@@ -1,5 +1,6 @@
 import React from 'react'
 import TextEditor from "./Editor"
+import './assets/App.css'
 import {
   BrowserRouter as Router,
   Switch,
@@ -13,9 +14,9 @@ function App() {
     <Router>
       <Switch>
         <Route path="/" exact>
-          <Redirect to={`/documents/${uuidV4()}`} />
+          <Redirect to={`/${uuidV4()}`} />
         </Route>
-        <Route path="/documents/:id">
+        <Route path="/:id">
           <TextEditor />
         </Route>
       </Switch>
