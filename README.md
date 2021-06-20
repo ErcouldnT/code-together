@@ -33,6 +33,8 @@ MongoDB Atlas
   * [ ] Document name input
   * [ ] Video conference with webRTC
   * [ ] Morgan & Rate limit & Slow down
+  * [ ] Share mouse-events with each player
+  * [ ] Make the editor like CodeWars, HackerRank ide
 
 ## Link to recent app
 > https://together.erkuttekoglu.com \
