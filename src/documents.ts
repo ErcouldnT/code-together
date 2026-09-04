@@ -8,6 +8,22 @@ import { documents } from "./db/schema.js";
 /** What a room created from now on writes into the legacy column. */
 const EMPTY_DELTA: LegacyDocumentData = { ops: [] };
 
+export interface LoadedDocument {
+  doc: Y.Doc;
+  /**
+   * True when the contents came from the legacy Quill delta rather than from
+   * `ystate`, which means this document exists only in memory so far.
+   *
+   * The caller has to write it out. Seeding produces a *new* Yjs document with
+   * a fresh client id every time, so a room that is seeded, read, and never
+   * saved gets a different — and equally valid — document on the next open.
+   * Two such documents do not recognise each other as the same content: they
+   * merge, and the text appears twice. Persisting the first seed is what makes
+   * the migration happen once.
+   */
+  seeded: boolean;
+}
+
 /**
  * Load a room into a fresh `Y.Doc`, creating the row the first time anyone
  * opens it.
@@ -18,10 +34,10 @@ const EMPTY_DELTA: LegacyDocumentData = { ops: [] };
  *  - `ystate` present: the normal path, one `applyUpdate`;
  *  - `ystate` empty but `data` populated: a room that predates the migration,
  *    opened for the first time since. Its Quill delta is replayed into the
- *    document once, and the next save writes `ystate`. Nothing is deleted, so
- *    an interrupted seed just happens again next time.
+ *    document once and reported as `seeded`. Nothing is deleted, so an
+ *    interrupted seed simply happens again next time.
  */
-export function loadDocument(id: string): Y.Doc {
+export function loadDocument(id: string): LoadedDocument {
   const doc = new Y.Doc();
   const row = db.select().from(documents).where(eq(documents.id, id)).get();
 
@@ -32,17 +48,19 @@ export function loadDocument(id: string): Y.Doc {
       .values({ id, data: EMPTY_DELTA })
       .onConflictDoNothing({ target: documents.id })
       .run();
-    return doc;
+    return { doc, seeded: false };
   }
 
   if (row.ystate && row.ystate.length > 0) {
     Y.applyUpdate(doc, new Uint8Array(row.ystate));
-    return doc;
+    return { doc, seeded: false };
   }
 
   const ops = row.data?.ops ?? [];
-  if (ops.length > 0) doc.getText(TEXT_KEY).applyDelta(ops);
-  return doc;
+  if (ops.length === 0) return { doc, seeded: false };
+
+  doc.getText(TEXT_KEY).applyDelta(ops);
+  return { doc, seeded: true };
 }
 
 /**

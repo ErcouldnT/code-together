@@ -67,7 +67,7 @@ function scheduleSave(room: RoomState): void {
 }
 
 function openRoom(id: string): RoomState {
-  const doc = loadDocument(id);
+  const { doc, seeded } = loadDocument(id);
   const room: RoomState = {
     id,
     doc,
@@ -82,6 +82,10 @@ function openRoom(id: string): RoomState {
   room.awareness.setLocalState(null);
   doc.on("update", () => scheduleSave(room));
   rooms.set(id, room);
+  // A seed is a change to the document that produced no update event, because
+  // it happened before this listener existed. Left unsaved it would be redone,
+  // differently, on every open — see `LoadedDocument.seeded`.
+  if (seeded) scheduleSave(room);
   return room;
 }
 
