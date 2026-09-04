@@ -9,11 +9,17 @@ ENV NPM_CONFIG_FUND=false \
 WORKDIR /app
 
 
-# better-sqlite3 ships prebuilt .node binaries; --ignore-scripts stops npm from
-# falling back to a node-gyp compile it does not need (npm ci quirk).
+# Two things the build stages have to defend against:
+#  - Coolify injects `ARG NODE_ENV` into every stage, and a build ARG shows up as
+#    an environment variable inside RUN. With NODE_ENV=production npm drops the
+#    devDependencies and the build dies on a missing tsc/vite. ENV wins over ARG,
+#    and --include=dev makes it explicit either way.
+#  - better-sqlite3 ships prebuilt .node binaries; --ignore-scripts stops npm from
+#    falling back to a node-gyp compile it does not need (npm ci quirk).
 FROM base AS server-deps
+ENV NODE_ENV=development
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+RUN npm ci --include=dev --ignore-scripts
 
 
 FROM base AS prod-deps
@@ -29,8 +35,9 @@ RUN npm run build
 
 
 FROM base AS client-build
+ENV NODE_ENV=development
 COPY client/package.json client/package-lock.json ./client/
-RUN npm --prefix client ci --ignore-scripts
+RUN npm --prefix client ci --include=dev --ignore-scripts
 COPY shared ./shared
 COPY client ./client
 RUN npm --prefix client run build
