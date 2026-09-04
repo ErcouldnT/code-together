@@ -1,14 +1,38 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import type { DocumentData } from "../../shared/events.js";
+import { blob, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import type { LegacyDocumentData } from "../../shared/events.js";
 
 export const documents = sqliteTable(
   "documents",
   {
     /** The nanoid from the URL — the room name people share with each other. */
     id: text("id").primaryKey(),
-    /** Quill delta, stored as JSON text. */
-    data: text("data", { mode: "json" }).$type<DocumentData>().notNull(),
+    /**
+     * The Yjs document, as one encoded state update. This is the document.
+     *
+     * Null only for a room that existed before the Yjs migration and has not
+     * been opened since; the first join seeds it from `data`.
+     */
+    ystate: blob("ystate", { mode: "buffer" }),
+    /**
+     * The pre-Yjs Quill delta. Read once, to seed `ystate`, and written only as
+     * an empty delta for rooms created from now on — but not dropped, and not
+     * made nullable either.
+     *
+     * Both of those are deliberate. Dropping it would delete the only copy of a
+     * room's contents until somebody opens that room. Relaxing NOT NULL looks
+     * tidier and is worse: SQLite cannot change a column in place, so drizzle
+     * rewrites the whole table, and the generated INSERT ... SELECT reads
+     * `ystate`/`title` out of the *old* table, which does not have them yet.
+     * That migration fails at boot. Leaving the column exactly as it was keeps
+     * this a pair of plain ADD COLUMNs.
+     */
+    data: text("data", { mode: "json" }).$type<LegacyDocumentData>().notNull(),
+    /**
+     * Mirror of the title held inside the Yjs document, kept here so a room can
+     * be listed without decoding its CRDT. Written by the persistence path.
+     */
+    title: text("title"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),

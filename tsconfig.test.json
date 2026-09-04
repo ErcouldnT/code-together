@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    // Bundler resolution, not the server's NodeNext: this project checks server
+    // and client sources under two different configs, and the tests are the one
+    // place that imports both. Bundler mode accepts each side's import style,
+    // including the client's "@shared/*" alias and the ".ts" extension the test
+    // helper needs to reach the provider.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+    "paths": { "@shared/*": ["./shared/*"] }
+  },
+  "include": ["tests/**/*.ts", "src/**/*.ts", "shared/**/*.ts", "client/src/yjs/**/*.ts", "client/src/socket.ts"]
+}

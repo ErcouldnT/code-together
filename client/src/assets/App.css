@@ -253,3 +253,32 @@ body {
     display: none;
   }
 }
+
+/*
+ * The connection notice. Fixed rather than in flow: it appears and disappears
+ * as the network comes and goes, and pushing the whole editor down by a line
+ * every time would move the text under the caret.
+ */
+.notice {
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(92vw, 40rem);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background-color: var(--panel-bg);
+  box-shadow: var(--shadow);
+  padding: 0.4rem 0.9rem;
+  color: var(--muted);
+  font: 0.85rem/1.4 system-ui, sans-serif;
+  text-align: center;
+}
+
+.notice[data-kind="problem"] {
+  color: var(--text);
+  border-color: #d14343;
+}

@@ -13,6 +13,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.test.json",
+    "test": "node --import tsx --test tests/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
     "client:dev": "npm --prefix client run dev",
@@ -41,13 +43,19 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
-    "socket.io": "^4.8.3"
+    "express-rate-limit": "^8.7.0",
+    "pino-http": "^11.0.0",
+    "socket.io": "^4.8.3",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.32"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
     "@types/express": "^5.0.6",
     "@types/node": "^22.19.0",
     "drizzle-kit": "^0.31.10",
+    "quill-delta": "^5.1.0",
+    "socket.io-client": "^4.8.3",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3"
   }
