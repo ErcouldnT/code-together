@@ -102,3 +102,9 @@ dist/
 
 # TernJS port file
 .tern-port
+
+# SQLite data (lives on a Docker volume in production)
+data/
+*.db
+*.db-shm
+*.db-wal

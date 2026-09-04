@@ -1,12 +1,22 @@
 {
   "name": "code-together",
-  "version": "1.0.0",
-  "description": "An Express, Socket.io, React project to work together on a single webpage simultaneously. ",
-  "main": "server.js",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An Express, Socket.io and React project to work together on a single webpage simultaneously.",
+  "main": "dist/src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "start": "node server",
-    "dev": "nodemon server",
-    "heroku-postbuild": "cd client && npm install --only=dev && npm install && npm run build"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio",
+    "client:dev": "npm --prefix client run dev",
+    "client:build": "npm --prefix client run build"
   },
   "repository": {
     "type": "git",
@@ -15,7 +25,10 @@
   "keywords": [
     "express",
     "react",
-    "socket.io"
+    "socket.io",
+    "drizzle",
+    "sqlite",
+    "typescript"
   ],
   "author": "Ercode",
   "license": "MIT",
@@ -24,12 +37,18 @@
   },
   "homepage": "https://github.com/ErcouldnT/code-together#readme",
   "dependencies": {
-    "dotenv": "^10.0.0",
-    "express": "^4.17.1",
-    "mongoose": "^5.12.14",
-    "socket.io": "^4.1.2"
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
   }
 }

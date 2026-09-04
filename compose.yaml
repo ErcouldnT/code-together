@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Coolify magic variable: it generates the domain, injects it here and
+      # writes the matching Traefik labels. Nothing is published to the host.
+      - SERVICE_FQDN_APP_5000
+
+      # Everything below is overridable from Coolify's Environment Variables tab.
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT:-5000}
+      # Keep this under /app/data — that is the mounted volume.
+      - DATABASE_PATH=${DATABASE_PATH:-/app/data/together.db}
+      # Delete rooms untouched for N days. 0 keeps everything forever.
+      - DOCUMENT_TTL_DAYS=${DOCUMENT_TTL_DAYS:-0}
+    volumes:
+      - together-data:/app/data
+    expose:
+      - "5000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  together-data:
