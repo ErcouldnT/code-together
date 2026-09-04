@@ -1,3 +1,37 @@
+:root {
+  color-scheme: light dark;
+
+  --app-bg: #f3f3f3;
+  --sheet-bg: #ffffff;
+  --toolbar-bg: #f3f3f3;
+  --panel-bg: #ffffff;
+  --text: #1a1a1a;
+  --icon: #444444;
+  --border: #cccccc;
+  --link: #0066cc;
+  --code-bg: #f0f0f0;
+  --muted: rgba(0, 0, 0, 0.6);
+  --shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
+  --swatch-outline: #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #16181c;
+    --sheet-bg: #1e2126;
+    --toolbar-bg: #1a1d21;
+    --panel-bg: #23262c;
+    --text: #e6e8ea;
+    --icon: #b8bdc4;
+    --border: #3a3f47;
+    --link: #6cb2ff;
+    --code-bg: #2a2e34;
+    --muted: rgba(255, 255, 255, 0.55);
+    --shadow: 0 0 6px 0 rgba(0, 0, 0, 0.7);
+    --swatch-outline: #ffffff;
+  }
+}
+
 *,
 *::before,
 *::after {
@@ -11,7 +45,7 @@ html {
 
 body {
   margin: 0;
-  background-color: #f3f3f3;
+  background-color: var(--app-bg);
   overflow-x: hidden;
 }
 
@@ -37,8 +71,8 @@ body {
   row-gap: 0.25rem;
   padding: 0.4rem 0.5rem;
   border: none;
-  background-color: #f3f3f3;
-  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
+  background-color: var(--toolbar-bg);
+  box-shadow: var(--shadow);
 }
 
 /* Quill's 15px right margin on every group throws a wrapped row off centre. */
@@ -65,9 +99,89 @@ body {
   min-height: 11in;
   /* 1in on a desktop, roughly 1.25rem on a phone, fluid in between. */
   padding: clamp(1.25rem, 6vw, 1in);
-  background-color: #fff;
-  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
+  background-color: var(--sheet-bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
   font-size: 1rem;
+}
+
+/*
+ * Quill's snow theme hard-codes its greys, so every one of them has to be routed
+ * through the tokens above or the toolbar stays black-on-black in dark mode.
+ * Prefixing with .container outranks Quill's own selectors regardless of the
+ * order the two stylesheets end up in the bundle.
+ */
+.container .ql-snow .ql-stroke,
+.container .ql-snow .ql-stroke-miter,
+.container .ql-toolbar.ql-snow button:hover:not(.ql-active) .ql-stroke,
+.container .ql-toolbar.ql-snow button:hover:not(.ql-active) .ql-stroke-miter {
+  stroke: var(--icon);
+}
+
+.container .ql-snow .ql-fill,
+.container .ql-snow .ql-stroke.ql-fill,
+.container .ql-toolbar.ql-snow button:hover:not(.ql-active) .ql-fill {
+  fill: var(--icon);
+}
+
+.container .ql-snow .ql-picker,
+.container .ql-toolbar.ql-snow button:hover:not(.ql-active) {
+  color: var(--icon);
+}
+
+.container .ql-snow .ql-picker-options {
+  background-color: var(--panel-bg);
+  border-color: var(--border);
+}
+
+.container .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label,
+.container .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-options {
+  border-color: var(--border);
+}
+
+/* The selected swatch needs an outline that shows against the panel. */
+.container .ql-toolbar.ql-snow .ql-color-picker .ql-picker-item.ql-selected,
+.container .ql-toolbar.ql-snow .ql-color-picker .ql-picker-item:hover {
+  border-color: var(--swatch-outline);
+}
+
+.container .ql-editor.ql-blank::before {
+  color: var(--muted);
+}
+
+.container .ql-snow a {
+  color: var(--link);
+}
+
+.container .ql-snow .ql-editor blockquote {
+  border-left-color: var(--border);
+}
+
+.container .ql-snow .ql-editor code {
+  background-color: var(--code-bg);
+}
+
+.container .ql-editor td {
+  border-color: var(--border);
+}
+
+/* The link tooltip is a floating white card in the stock theme. */
+.container .ql-snow .ql-tooltip {
+  background-color: var(--panel-bg);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.container .ql-snow .ql-tooltip input[type='text'] {
+  background-color: var(--sheet-bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.container .ql-snow .ql-tooltip a.ql-action::after,
+.container .ql-snow .ql-tooltip a.ql-remove::before {
+  border-color: var(--border);
 }
 
 /* Touch devices: Quill's 24px buttons are below a comfortable tap target. */
@@ -109,6 +223,7 @@ body {
   margin: 1in;
 }
 
+/* Always print on white, whatever the screen is doing. */
 @media print {
   body {
     background: none;
@@ -128,6 +243,8 @@ body {
     height: 9in;
     min-height: 0;
     padding: 0;
+    background-color: #fff;
+    color: #000;
     box-shadow: none;
     align-self: flex-start;
   }

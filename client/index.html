@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Declared here as well as in CSS so the first paint is not a white flash. -->
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f3f3f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)" />
     <title>Code together!</title>
   </head>
   <body>
