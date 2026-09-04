@@ -1,36 +1,108 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
+html {
+  /* Stop iOS from inflating text when the phone is turned sideways. */
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background-color: #F3F3F3;
   margin: 0;
+  background-color: #f3f3f3;
+  overflow-x: hidden;
 }
 
-.container .ql-editor {
-  width: 8.5in;
-  min-height: 11in;
-  padding: 1in;
-  margin: 1rem;
-  box-shadow: 0 0 5px 0 rgba(0, 0, 0, .5);
-  background-color: white;
-}
-
-.container .ql-container.ql-snow {
-  border: none;
+/* Quill renders the toolbar and the editor container as siblings in here. */
+.container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  min-height: 100dvh;
 }
 
+/*
+ * The toolbar has ten format groups. On a phone they do not fit on one line, and
+ * a non-wrapping flex row just runs off both edges of the screen, so let it wrap.
+ */
 .container .ql-toolbar.ql-snow {
-  display: flex;
-  justify-content: center;
   position: sticky;
   top: 0;
   z-index: 1;
-  background-color: #F3F3F3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  row-gap: 0.25rem;
+  padding: 0.4rem 0.5rem;
   border: none;
-  box-shadow: 0 0 5px 0 rgba(0, 0, 0, .5);
+  background-color: #f3f3f3;
+  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Quill's 15px right margin on every group throws a wrapped row off centre. */
+.container .ql-toolbar.ql-snow .ql-formats {
+  margin-right: 12px;
+}
+
+.container .ql-toolbar.ql-snow .ql-formats:last-child {
+  margin-right: 0;
+}
+
+.container .ql-container.ql-snow {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  border: none;
+}
+
+/* The sheet of paper. Never wider than the screen, never wider than US Letter. */
+.container .ql-editor {
+  width: 100%;
+  max-width: 8.5in;
+  min-height: 11in;
+  /* 1in on a desktop, roughly 1.25rem on a phone, fluid in between. */
+  padding: clamp(1.25rem, 6vw, 1in);
+  background-color: #fff;
+  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
+  font-size: 1rem;
+}
+
+/* Touch devices: Quill's 24px buttons are below a comfortable tap target. */
+@media (pointer: coarse) {
+  .container .ql-toolbar.ql-snow button,
+  .container .ql-toolbar.ql-snow .ql-picker-label {
+    height: 32px;
+    padding: 6px;
+  }
+
+  .container .ql-toolbar.ql-snow button {
+    width: 34px;
+  }
+}
+
+/*
+ * Phones: drop the paper metaphor. A shadowed sheet inset from the edges wastes
+ * the little width there is, and an 11in tall blank page is just dead scroll.
+ */
+@media (max-width: 40em) {
+  /* 6px is the point where the ten groups fold into two rows instead of three. */
+  .container .ql-toolbar.ql-snow .ql-formats {
+    margin-right: 6px;
+  }
+
+  .container .ql-container.ql-snow {
+    padding: 0;
+  }
+
+  .container .ql-editor {
+    max-width: none;
+    min-height: calc(100dvh - 5rem);
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    box-shadow: none;
+  }
 }
 
 @page {
@@ -42,11 +114,20 @@ body {
     background: none;
   }
 
+  .container {
+    min-height: 0;
+  }
+
+  .container .ql-container.ql-snow {
+    padding: 0;
+  }
+
   .container .ql-editor {
     width: 6.5in;
+    max-width: none;
     height: 9in;
+    min-height: 0;
     padding: 0;
-    margin: 0;
     box-shadow: none;
     align-self: flex-start;
   }
