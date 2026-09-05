@@ -20,6 +20,9 @@ services:
       # they are part of a document, so they belong in the same backup.
       - UPLOAD_DIR=${UPLOAD_DIR:-/app/data/uploads}
       - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-26214400}
+      # Version history: how often a point is kept, and how many per document.
+      - SNAPSHOT_EVERY_MS=${SNAPSHOT_EVERY_MS:-600000}
+      - SNAPSHOT_KEEP=${SNAPSHOT_KEEP:-20}
     volumes:
       - together-data:/app/data
     expose:

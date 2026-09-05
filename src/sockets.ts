@@ -12,14 +12,7 @@ import type {
   UpdateRejection,
 } from "../shared/events.js";
 import { env } from "./env.js";
-import { joinRoom, leaveRoom, type Room } from "./rooms.js";
-
-/**
- * Room ids come from `nanoid(5)` but reach us straight out of the URL, so they
- * are arbitrary user input. Bounded and restricted to characters that cannot
- * mean anything to a path or a query.
- */
-const ROOM_ID = /^[A-Za-z0-9_-]{1,64}$/;
+import { joinRoom, leaveRoom, ROOM_ID, type Room } from "./rooms.js";
 
 interface SocketData {
   room?: Room;

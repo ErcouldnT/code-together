@@ -43,6 +43,16 @@ export const env = {
    * does not, not the normal case.
    */
   maxUploadBytes: int(process.env.MAX_UPLOAD_BYTES, 25 * 1024 * 1024),
+
+  /**
+   * How often a changing document earns a point in its history, and how many
+   * points are kept. Ten minutes and twenty is roughly a working day of active
+   * editing; the interval is a knob mostly so it can be driven to zero in a
+   * test, where waiting ten minutes for the feature to do anything is not an
+   * option.
+   */
+  snapshotEveryMs: int(process.env.SNAPSHOT_EVERY_MS, 10 * 60 * 1000),
+  snapshotKeep: int(process.env.SNAPSHOT_KEEP, 20),
 } as const;
 
 export const isProduction = env.nodeEnv === "production";

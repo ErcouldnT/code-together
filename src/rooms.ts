@@ -1,6 +1,7 @@
 import { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
 import { loadDocument, saveDocument } from "./documents.js";
+import { takeSnapshot } from "./snapshots.js";
 
 /**
  * One `Y.Doc` per room, in memory, shared by everyone in it.
@@ -25,6 +26,14 @@ import { loadDocument, saveDocument } from "./documents.js";
  * the last change.
  */
 const SAVE_INTERVAL_MS = 2000;
+
+/**
+ * Room ids come from `nanoid(5)` but reach us straight out of a URL, so they
+ * are arbitrary user input. Bounded, and restricted to characters that cannot
+ * mean anything to a path or a query. Shared by the socket handshake and the
+ * HTTP routes so the two cannot disagree about what a room is called.
+ */
+export const ROOM_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export interface Room {
   readonly id: string;
@@ -52,6 +61,9 @@ function flush(room: RoomState): void {
   room.dirty = false;
   saveDocument(room.id, room.doc);
   room.bytes = Y.encodeStateAsUpdate(room.doc).byteLength;
+  // Hangs off the save rather than a timer of its own: a document nobody is
+  // editing is never saved, so it never accumulates identical snapshots.
+  takeSnapshot(room.id, room.doc);
 }
 
 function scheduleSave(room: RoomState): void {
@@ -105,6 +117,17 @@ export function leaveRoom(id: string, socketId: string): void {
   rooms.delete(id);
   room.awareness.destroy();
   room.doc.destroy();
+}
+
+/**
+ * The live document for a room, if anyone has it open.
+ *
+ * Reading this rather than the database is worth it for exports: the database
+ * copy is up to one save interval behind, and "I exported it and my last
+ * sentence was missing" is a bug report.
+ */
+export function peekRoom(id: string): Room | undefined {
+  return rooms.get(id);
 }
 
 /** Present so tests and the shutdown path can see the registry. */

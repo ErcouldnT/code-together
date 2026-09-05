@@ -165,6 +165,40 @@ export function saveDocument(id: string, doc: Y.Doc): void {
     .run();
 }
 
+export interface DocumentContents {
+  title: string;
+  ops: DeltaOp[];
+}
+
+/** What the export routes need, read out of a document already in hand. */
+export function contentsOf(id: string, doc: Y.Doc): DocumentContents {
+  return { title: titleOf(doc) ?? id, ops: doc.getText(TEXT_KEY).toDelta() as DeltaOp[] };
+}
+
+/**
+ * The same, for a room nobody currently has open, read from SQLite.
+ *
+ * Kept separate from `contentsOf` rather than choosing between them here: the
+ * caller is the one that knows whether a live copy exists, and asking
+ * documents.ts to look in the room registry would make these two modules
+ * import each other.
+ */
+export function storedContents(id: string): DocumentContents | null {
+  const row = db.select().from(documents).where(eq(documents.id, id)).get();
+  if (!row) return null;
+
+  const doc = new Y.Doc();
+  try {
+    if (row.ystate && row.ystate.length > 0) Y.applyUpdate(doc, new Uint8Array(row.ystate));
+    else doc.getText(TEXT_KEY).applyDelta(unembed(row.data?.ops ?? []));
+    const contents = contentsOf(id, doc);
+    return { ...contents, title: titleOf(doc) ?? row.title ?? id };
+  }
+  finally {
+    doc.destroy();
+  }
+}
+
 /** Drop rooms nobody has touched in a while. Only runs when DOCUMENT_TTL_DAYS is set. */
 export function deleteStaleDocuments(ttlDays: number): number {
   if (ttlDays <= 0) return 0;

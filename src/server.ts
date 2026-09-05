@@ -4,9 +4,11 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import { pinoHttp } from "pino-http";
 import { closeDatabase, runMigrations } from "./db/index.js";
-import { deleteStaleDocuments, referencedUploads } from "./documents.js";
+import { contentsOf, deleteStaleDocuments, referencedUploads, storedContents } from "./documents.js";
 import { env, isProduction } from "./env.js";
-import { closeAllRooms } from "./rooms.js";
+import { toHtmlDocument, toMarkdown } from "./export.js";
+import { closeAllRooms, peekRoom, ROOM_ID } from "./rooms.js";
+import { listSnapshots, snapshotContents } from "./snapshots.js";
 import { attachSockets } from "./sockets.js";
 import { mimeForStoredName, pathForStoredName, storeUpload, sweepUploads } from "./uploads.js";
 
@@ -100,6 +102,62 @@ app.get("/uploads/:name", (req, res) => {
   });
 });
 
+/**
+ * Take the document away as a file.
+ *
+ * PDF is deliberately not here: the print stylesheet already lays the document
+ * out on paper, so the browser's own "save as PDF" does it with no renderer to
+ * ship, no fonts to embed and nothing to keep working.
+ */
+app.get("/api/documents/:id/export", (req, res) => {
+  const id = req.params.id;
+  if (!ROOM_ID.test(id)) {
+    res.status(400).json({ error: "bad-id" });
+    return;
+  }
+
+  const format = req.query.format === "md" ? "md" : "html";
+  // The live copy when somebody has the room open, because the stored one is
+  // up to a save interval behind and "my last sentence is missing" is a bug.
+  const live = peekRoom(id);
+  const contents = live ? contentsOf(id, live.doc) : storedContents(id);
+  if (!contents) {
+    res.sendStatus(404);
+    return;
+  }
+
+  const body = format === "md"
+    ? toMarkdown(contents.ops)
+    : toHtmlDocument(contents.title, contents.ops);
+
+  res.setHeader("content-type", format === "md" ? "text/markdown; charset=utf-8" : "text/html; charset=utf-8");
+  res.setHeader("content-disposition", `attachment; filename="${filename(contents.title, id, format)}"`);
+  res.send(body);
+});
+
+app.get("/api/documents/:id/snapshots", (req, res) => {
+  const id = req.params.id;
+  if (!ROOM_ID.test(id)) {
+    res.status(400).json({ error: "bad-id" });
+    return;
+  }
+  res.json({ snapshots: listSnapshots(id) });
+});
+
+app.get("/api/documents/:id/snapshots/:snapshotId", (req, res) => {
+  const id = req.params.id;
+  if (!ROOM_ID.test(id)) {
+    res.status(400).json({ error: "bad-id" });
+    return;
+  }
+  const contents = snapshotContents(id, req.params.snapshotId);
+  if (!contents) {
+    res.sendStatus(404);
+    return;
+  }
+  res.json(contents);
+});
+
 app.use(express.static(clientDist));
 
 // Every other path is a document room; the SPA router resolves it.
@@ -132,6 +190,23 @@ cleanup.unref();
 httpServer.listen(env.port, () => {
   console.log(`Listening on port ${env.port} (${env.nodeEnv})`);
 });
+
+/**
+ * A download name from a title people can type anything into.
+ *
+ * Everything outside a small safe set is dropped rather than escaped, because
+ * this string ends up inside a quoted `Content-Disposition` header: a stray
+ * quote or newline there is header injection, not a cosmetic problem.
+ */
+function filename(title: string, id: string, format: string): string {
+  const stem = title
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 60);
+  return `${stem || id}.${format}`;
+}
 
 let shuttingDown = false;
 function shutdown(signal: string): void {

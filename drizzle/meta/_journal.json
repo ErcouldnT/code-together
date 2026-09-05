@@ -15,6 +15,13 @@
       "when": 1788556338294,
       "tag": "0001_skinny_bloodaxe",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788629394707,
+      "tag": "0002_fearless_switch",
+      "breakpoints": true
     }
   ]
 }

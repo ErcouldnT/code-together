@@ -24,6 +24,11 @@ the toolbar and on their cursor as it moves. There are no accounts — a room is
 a URL — so the name lives in your own browser and you can change it by clicking
 your own chip.
 
+A document has a title, which is part of the document and syncs like the text.
+The **Document** menu takes it away as HTML or Markdown, prints it (which is
+also how you save a PDF), lists the rooms you have opened before, and opens the
+version history.
+
 ## Stack
 
 | Layer     | Technology |
@@ -43,6 +48,8 @@ format fails the build on whichever side is out of date.
 src/                     Express + Socket.io server
   db/                    Drizzle schema and client
   documents.ts           load and save a room as a Yjs document
+  export.ts              one delta, two file formats
+  snapshots.ts           version history: periodic states, and restoring one
   uploads.ts             content-addressed picture store, and its sweeper
   rooms.ts               one in-memory Y.Doc per room, reference counted
   sockets.ts             the sync handshake, size and rate limits
@@ -54,7 +61,8 @@ client/
   src/editor-images.ts   paste, drop and the toolbar button, via Quill's uploader
   src/identity.ts        your name and cursor colour, kept in this browser
   src/presence.ts        who else is here, read out of Yjs awareness
-  src/components/        presence chips, the loading skeleton, the notice bar
+  src/components/        top bar, menu, history, presence, skeleton, notice
+  src/recent.ts          rooms you have opened, kept in this browser only
 tests/                   node:test, run against a real server over a real socket
 ```
 
@@ -84,6 +92,12 @@ To poke at it locally, use `docker compose exec` or attach a container to the ne
 
 Documents live on the `together-data` volume at `/app/data/together.db`, and the
 pictures in them at `/app/data/uploads`.
+
+Version history is a full state written at most every `SNAPSHOT_EVERY_MS` while
+a document is being edited, kept `SNAPSHOT_KEEP` deep, and deleted with the
+document it belongs to. Restoring does not reset the document: the difference
+between now and then is applied as an ordinary edit, so everyone else in the
+room converges on it the same way they converge on any other change.
 
 Uploads are typed by their bytes, never by the request's `Content-Type`, and SVG
 is refused outright — the files are served from the same origin as the app, so
@@ -115,6 +129,8 @@ deleting a picture between the upload finishing and the document being saved.
 | `UPDATE_BURST` / `UPDATE_WINDOW_MS` | no | `200` / `10000` | Per-socket update rate limit. |
 | `UPLOAD_DIR` | no | `/app/data/uploads` | Pictures. Keep it under `/app/data` — same volume as the database, so one backup covers a document and its pictures. |
 | `MAX_UPLOAD_BYTES` | no | `26214400` | Largest picture accepted. The browser shrinks anything big first; this is the backstop. |
+| `SNAPSHOT_EVERY_MS` | no | `600000` | How often a changing document earns a point in its history. |
+| `SNAPSHOT_KEEP` | no | `20` | Points kept per document; older ones are dropped. |
 
 Websockets need no extra configuration: Traefik upgrades them on the same host and path.
 Because state lives in one SQLite file and in-process Socket.io rooms, run **one replica**.
@@ -125,8 +141,9 @@ Because state lives in one SQLite file and in-process Socket.io rooms, run **one
   * [x] Conflict-free concurrent editing, and reconnect that actually reconnects
   * [x] Live cursors and a presence bar
   * [x] Image upload, so a pasted screenshot is a link and not a megabyte of base64
-  * [ ] Document name input
-  * [ ] Version history and export (HTML, Markdown, print to PDF)
+  * [x] Document name input
+  * [x] Version history and export (HTML, Markdown, print to PDF)
+  * [ ] Access control: today, anyone with the five-character address can edit
   * [ ] Video conference with webRTC
 
 &copy; 2021 Ercode
