@@ -85,6 +85,8 @@ body {
 }
 
 .container .ql-container.ql-snow {
+  /* the skeleton is positioned against this while the document loads */
+  position: relative;
   flex: 1;
   display: flex;
   justify-content: center;
@@ -258,18 +260,23 @@ body {
  * The connection notice. Fixed rather than in flow: it appears and disappears
  * as the network comes and goes, and pushing the whole editor down by a line
  * every time would move the text under the caret.
+ *
+ * At the bottom, not the top. The toolbar is sticky at the top and the notice
+ * was landing on it, hiding the align and image buttons for as long as the
+ * message was up — worst on a phone, where the toolbar wraps and there is
+ * nothing to spare.
  */
 .notice {
   position: fixed;
   z-index: 10;
-  top: 0;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   margin: 0;
   max-width: min(92vw, 40rem);
   border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 6px 6px;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
   background-color: var(--panel-bg);
   box-shadow: var(--shadow);
   padding: 0.4rem 0.9rem;
@@ -345,5 +352,104 @@ body {
   .presence,
   .notice {
     display: none;
+  }
+}
+
+/*
+ * The loading state: the sheet the editor is about to be, rather than a
+ * spinner on an empty page. Every measurement here is copied from
+ * `.container .ql-editor` on purpose — if the two drift apart the document
+ * will visibly jump when it arrives, which is the one thing this exists to
+ * prevent.
+ */
+.skeleton {
+  /* Inside Quill's editor wrapper, not over the page: the toolbar stays put
+     and visible, so it does not appear and shove the sheet down when the real
+     document arrives. */
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--app-bg);
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.skeleton-sheet {
+  width: 100%;
+  max-width: 8.5in;
+  flex: 1;
+  background-color: var(--sheet-bg);
+  box-shadow: var(--shadow);
+  padding: clamp(1.25rem, 6vw, 1in);
+}
+
+.skeleton-line {
+  height: 0.85rem;
+  border-radius: 3px;
+  /* No new colour: a wash of the existing border tone over the sheet. */
+  background-color: var(--border);
+  opacity: 0.55;
+}
+
+.skeleton-title {
+  width: 55%;
+  height: 1.6rem;
+  margin-bottom: 1.75rem;
+}
+
+.skeleton-paragraph {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-bottom: 1.6rem;
+}
+
+/*
+ * The shimmer is a highlight travelling across the whole sheet rather than one
+ * animation per line, so the lines read as a single surface catching the light
+ * instead of sixteen independent blinking bars.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-sheet {
+    --shimmer: color-mix(in srgb, var(--text) 6%, transparent);
+    background-image: linear-gradient(
+      100deg,
+      transparent 30%,
+      var(--shimmer) 50%,
+      transparent 70%
+    );
+    background-repeat: no-repeat;
+    background-size: 220% 100%;
+    animation: skeleton-shimmer 1.6s linear infinite;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 160% 0; }
+  to { background-position: -60% 0; }
+}
+
+/*
+ * Phones drop the paper metaphor — see the `.ql-editor` rules under the same
+ * breakpoint above — and the skeleton has to drop it in exactly the same
+ * places. Measured at 390px before this existed: the skeleton sheet sat 16px
+ * in and 16px down from where the real editor starts, so the document shifted
+ * when it arrived, on the screen size where that is most obvious.
+ *
+ * It lives here rather than in the phone block above because these override
+ * the base `.skeleton` rules, which are declared further down the file: same
+ * specificity, so source order decides.
+ */
+@media (max-width: 40em) {
+  .skeleton {
+    padding: 0;
+  }
+
+  .skeleton-sheet {
+    max-width: none;
+    box-shadow: none;
   }
 }

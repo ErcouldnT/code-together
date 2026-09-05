@@ -54,7 +54,7 @@ client/
   src/editor-images.ts   paste, drop and the toolbar button, via Quill's uploader
   src/identity.ts        your name and cursor colour, kept in this browser
   src/presence.ts        who else is here, read out of Yjs awareness
-  src/components/        presence chips and the connection notice
+  src/components/        presence chips, the loading skeleton, the notice bar
 tests/                   node:test, run against a real server over a real socket
 ```
 

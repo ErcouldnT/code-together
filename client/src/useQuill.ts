@@ -39,6 +39,8 @@ export interface EditorState {
   problem: string | null;
   /** how many pictures are on their way up */
   uploading: number;
+  /** false until the first sync lands — the skeleton is up until it does */
+  ready: boolean;
   /** null until the socket exists; presence reads awareness off it */
   provider: SocketProvider | null;
   /**
@@ -48,6 +50,13 @@ export interface EditorState {
    * the buttons.
    */
   toolbar: HTMLElement | null;
+  /**
+   * Quill's editor wrapper. The loading skeleton is portalled in here rather
+   * than laid over the whole page: covering the toolbar too would mean the
+   * toolbar appears when the document arrives, pushing the sheet down by its
+   * own height — the exact jump the skeleton exists to avoid.
+   */
+  editorArea: HTMLElement | null;
   identity: Identity;
   rename: (name: string) => void;
 }
@@ -70,6 +79,7 @@ export function useQuill(documentId: string | undefined): EditorState {
   const [ready, setReady] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [toolbar, setToolbar] = useState<HTMLElement | null>(null);
+  const [editorArea, setEditorArea] = useState<HTMLElement | null>(null);
   const [identity, setIdentity] = useState<Identity>(loadIdentity);
 
   /*
@@ -88,7 +98,7 @@ export function useQuill(documentId: string | undefined): EditorState {
 
     const instance = new Quill(editor, {
       theme: "snow",
-      placeholder: "Loading…",
+      placeholder: "Start typing, or paste a screenshot…",
       modules: {
         toolbar: {
           container: TOOLBAR_OPTIONS,
@@ -106,16 +116,18 @@ export function useQuill(documentId: string | undefined): EditorState {
         },
       },
     });
-    // Disabled until the first sync lands. Typing before then is not lost —
-    // Yjs merges it — but writing into a document that is about to fill in
-    // around you reads as a bug.
+    // Disabled until the first sync lands, and covered by the skeleton until
+    // then. Typing before then would not be lost — Yjs merges it — but writing
+    // into a document that is about to fill in around you reads as a bug.
     instance.disable();
     setQuill(instance);
     setToolbar((instance.getModule("toolbar") as { container?: HTMLElement } | undefined)?.container ?? null);
+    setEditorArea(instance.container);
 
     return () => {
       setQuill(null);
       setToolbar(null);
+      setEditorArea(null);
       wrapper.innerHTML = "";
     };
   }, []);
@@ -185,5 +197,16 @@ export function useQuill(documentId: string | undefined): EditorState {
     });
   }, []);
 
-  return { containerRef, status, problem, uploading, provider, toolbar, identity, rename };
+  return {
+    containerRef,
+    status,
+    problem,
+    uploading,
+    ready,
+    provider,
+    toolbar,
+    editorArea,
+    identity,
+    rename,
+  };
 }
