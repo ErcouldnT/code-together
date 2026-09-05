@@ -14,6 +14,11 @@ apart, and a client that loses its connection keeps editing and merges on reconn
 Yjs updates travel over the Socket.io connection the app already has — there is no
 second endpoint and no separate websocket server to run.
 
+Paste a screenshot, drag a photo in, or use the toolbar button: the picture is
+uploaded and the document holds its address. Quill's own behaviour is to embed
+pictures as base64 *inside* the text, which in a shared document means every
+copy of that blob is broadcast to everyone in the room on every keystroke.
+
 ## Stack
 
 | Layer     | Technology |
@@ -33,6 +38,7 @@ format fails the build on whichever side is out of date.
 src/                     Express + Socket.io server
   db/                    Drizzle schema and client
   documents.ts           load and save a room as a Yjs document
+  uploads.ts             content-addressed picture store, and its sweeper
   rooms.ts               one in-memory Y.Doc per room, reference counted
   sockets.ts             the sync handshake, size and rate limits
 shared/                  the wire contract, imported by both sides
@@ -40,6 +46,7 @@ drizzle/                 generated migrations — never hand-written
 client/
   src/yjs/               binds the Y.Doc and awareness to the socket
   src/useQuill.ts        Quill + QuillBinding
+  src/editor-images.ts   paste, drop and the toolbar button, via Quill's uploader
 tests/                   node:test, run against a real server over a real socket
 ```
 
@@ -67,7 +74,14 @@ The compose file deliberately publishes **no host ports**. The container only ex
 5000 on the Docker network, which is how a reverse proxy (Coolify's Traefik) reaches it.
 To poke at it locally, use `docker compose exec` or attach a container to the network.
 
-Documents live on the `together-data` volume at `/app/data/together.db`.
+Documents live on the `together-data` volume at `/app/data/together.db`, and the
+pictures in them at `/app/data/uploads`.
+
+Uploads are typed by their bytes, never by the request's `Content-Type`, and SVG
+is refused outright — the files are served from the same origin as the app, so
+anything that can run script is stored XSS. An hourly sweep removes pictures no
+document mentions and that are more than a day old; the delay is what stops it
+deleting a picture between the upload finishing and the document being saved.
 
 ## Deploying with Coolify
 
@@ -91,6 +105,8 @@ Documents live on the `together-data` volume at `/app/data/together.db`.
 | `MAX_UPDATE_BYTES` | no | `1048576` | Largest single document update accepted. Mostly there to stop a pasted base64 image until real uploads exist. |
 | `MAX_DOCUMENT_BYTES` | no | `8388608` | Largest a document may grow, checked against the size at the last save. |
 | `UPDATE_BURST` / `UPDATE_WINDOW_MS` | no | `200` / `10000` | Per-socket update rate limit. |
+| `UPLOAD_DIR` | no | `/app/data/uploads` | Pictures. Keep it under `/app/data` — same volume as the database, so one backup covers a document and its pictures. |
+| `MAX_UPLOAD_BYTES` | no | `26214400` | Largest picture accepted. The browser shrinks anything big first; this is the backstop. |
 
 Websockets need no extra configuration: Traefik upgrades them on the same host and path.
 Because state lives in one SQLite file and in-process Socket.io rooms, run **one replica**.
@@ -100,7 +116,7 @@ Because state lives in one SQLite file and in-process Socket.io rooms, run **one
   * [x] Rate limit, request logging, update and document size caps
   * [x] Conflict-free concurrent editing, and reconnect that actually reconnects
   * [ ] Live cursors and a presence bar (the awareness data is already on the wire)
-  * [ ] Image upload, so a pasted screenshot is a link and not a megabyte of base64
+  * [x] Image upload, so a pasted screenshot is a link and not a megabyte of base64
   * [ ] Document name input
   * [ ] Version history and export (HTML, Markdown, print to PDF)
   * [ ] Video conference with webRTC

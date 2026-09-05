@@ -10,12 +10,16 @@ const STATUS_TEXT = {
 
 export default function Editor() {
   const { id: documentId } = useParams<{ id: string }>();
-  const { containerRef, status, problem } = useQuill(documentId);
+  const { containerRef, status, problem, uploading } = useQuill(documentId);
 
   // Only shown when there is something to say. A silently broken connection is
   // the failure this whole rewrite is about; saying nothing while synced is the
   // other half of being honest about it.
-  const notice = problem ?? STATUS_TEXT[status];
+  const notice
+    = problem
+      ?? (uploading > 0
+        ? `Uploading ${uploading} picture${uploading === 1 ? "" : "s"}…`
+        : STATUS_TEXT[status]);
 
   return (
     <>

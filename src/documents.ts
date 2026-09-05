@@ -1,9 +1,10 @@
 import { eq, lt } from "drizzle-orm";
 import * as Y from "yjs";
-import type { LegacyDocumentData } from "../shared/events.js";
+import type { DeltaOp, LegacyDocumentData } from "../shared/events.js";
 import { META_KEY, TEXT_KEY } from "../shared/ydoc.js";
 import { db } from "./db/index.js";
 import { documents } from "./db/schema.js";
+import { storedNameIn, storeUpload } from "./uploads.js";
 
 /** What a room created from now on writes into the legacy column. */
 const EMPTY_DELTA: LegacyDocumentData = { ops: [] };
@@ -59,8 +60,88 @@ export function loadDocument(id: string): LoadedDocument {
   const ops = row.data?.ops ?? [];
   if (ops.length === 0) return { doc, seeded: false };
 
-  doc.getText(TEXT_KEY).applyDelta(ops);
+  doc.getText(TEXT_KEY).applyDelta(unembed(ops));
   return { doc, seeded: true };
+}
+
+/** `data:image/png;base64,…` → the bytes it stands for, or null. */
+function decodeDataUrl(value: string): Buffer | null {
+  const match = /^data:[^;,]*;base64,([A-Za-z0-9+/=\s]+)$/.exec(value);
+  if (!match?.[1]) return null;
+  try {
+    return Buffer.from(match[1], "base64");
+  }
+  catch {
+    return null;
+  }
+}
+
+/**
+ * Move base64 pictures out of a legacy delta and into the upload store as it is
+ * seeded.
+ *
+ * This is the one moment it can be done cheaply. Leave them and they become
+ * part of the Yjs document, at which point every one of those megabytes is
+ * broadcast to the whole room on every edit and rewritten to SQLite on every
+ * save — the seeding step would carry the exact problem uploads exist to end
+ * across into the new world.
+ *
+ * A picture we cannot store (a corrupt data URL, or an SVG) is left exactly as
+ * it was rather than dropped: it is somebody's document, and a broken image is
+ * a better outcome than a missing one.
+ */
+function unembed(ops: DeltaOp[]): DeltaOp[] {
+  return ops.map((op) => {
+    const insert = op.insert;
+    if (typeof insert !== "object" || insert === null) return op;
+    const image = (insert as { image?: unknown }).image;
+    if (typeof image !== "string" || !image.startsWith("data:")) return op;
+
+    const bytes = decodeDataUrl(image);
+    if (!bytes) return op;
+    const stored = storeUpload(bytes);
+    if ("error" in stored) return op;
+    return { ...op, insert: { ...insert, image: stored.url } };
+  });
+}
+
+/**
+ * Every stored picture any document still points at.
+ *
+ * Read out of SQLite rather than out of the in-memory rooms, which makes the
+ * answer up to one save interval stale — covered many times over by the
+ * sweep's grace period.
+ *
+ * Throws rather than returning what it managed to read. The caller deletes
+ * everything *not* in this set, so a partial answer is not a smaller answer,
+ * it is a set of deletions of pictures that are still in use. Failing here
+ * stops the sweep, which is the safe direction: pictures accumulate, and the
+ * error says which document could not be read.
+ */
+export function referencedUploads(): Set<string> {
+  const names = new Set<string>();
+  const rows = db.select({ id: documents.id, ystate: documents.ystate }).from(documents).all();
+
+  for (const row of rows) {
+    if (!row.ystate || row.ystate.length === 0) continue;
+    const doc = new Y.Doc();
+    try {
+      Y.applyUpdate(doc, new Uint8Array(row.ystate));
+      for (const op of doc.getText(TEXT_KEY).toDelta() as DeltaOp[]) {
+        const image = (op.insert as { image?: unknown } | undefined)?.image;
+        if (typeof image !== "string") continue;
+        const name = storedNameIn(image);
+        if (name) names.add(name);
+      }
+    }
+    catch (cause) {
+      throw new Error(`Could not read document ${row.id} while collecting upload references`, { cause });
+    }
+    finally {
+      doc.destroy();
+    }
+  }
+  return names;
 }
 
 /**

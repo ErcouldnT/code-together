@@ -4,10 +4,11 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import { pinoHttp } from "pino-http";
 import { closeDatabase, runMigrations } from "./db/index.js";
-import { deleteStaleDocuments } from "./documents.js";
+import { deleteStaleDocuments, referencedUploads } from "./documents.js";
 import { env, isProduction } from "./env.js";
 import { closeAllRooms } from "./rooms.js";
 import { attachSockets } from "./sockets.js";
+import { mimeForStoredName, pathForStoredName, storeUpload, sweepUploads } from "./uploads.js";
 
 runMigrations();
 
@@ -46,6 +47,59 @@ app.use(
   }),
 );
 
+/**
+ * Pictures pasted or dropped into a document.
+ *
+ * The body is the raw file, not a multipart form. Multipart exists to carry a
+ * filename and a declared type alongside the bytes, and this endpoint uses
+ * neither: the name is the content hash and the type is sniffed from the
+ * bytes, precisely because a client's claim about either cannot be trusted.
+ * Raw bodies also mean express enforces the size limit before the bytes are
+ * buffered, and no parser dependency joins the tree.
+ */
+app.post(
+  "/api/uploads",
+  express.raw({ type: "*/*", limit: env.maxUploadBytes }),
+  (req, res) => {
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      res.status(400).json({ error: "empty" });
+      return;
+    }
+    const stored = storeUpload(req.body);
+    if ("error" in stored) {
+      // Says what it is rather than what it is not: an SVG and a mislabelled
+      // HTML file both land here, and both are refused for the same reason.
+      res.status(415).json({ error: "not-an-image" });
+      return;
+    }
+    res.json({ url: stored.url, bytes: stored.bytes });
+  },
+);
+
+app.get("/uploads/:name", (req, res) => {
+  const name = req.params.name;
+  const path = pathForStoredName(name);
+  const mime = path && mimeForStoredName(name);
+  if (!path || !mime) {
+    res.sendStatus(404);
+    return;
+  }
+  res.sendFile(path, {
+    headers: {
+      "content-type": mime,
+      // The type is ours, from the bytes — do not let a browser reconsider it.
+      "x-content-type-options": "nosniff",
+      "content-disposition": "inline",
+      // Nothing in a picture should be able to reach anything.
+      "content-security-policy": "default-src 'none'",
+      // The name is the hash of the contents, so the contents cannot change.
+      "cache-control": "public, max-age=31536000, immutable",
+    },
+  }, (error) => {
+    if (error) res.sendStatus(404);
+  });
+});
+
 app.use(express.static(clientDist));
 
 // Every other path is a document room; the SPA router resolves it.
@@ -56,13 +110,24 @@ app.use((_req, res) => {
 const httpServer = createServer(app);
 const io = attachSockets(httpServer);
 
-const cleanup = env.documentTtlDays > 0
-  ? setInterval(() => {
-      const removed = deleteStaleDocuments(env.documentTtlDays);
-      if (removed > 0) console.log(`Pruned ${removed} stale document(s).`);
-    }, 60 * 60 * 1000)
-  : undefined;
-cleanup?.unref();
+const cleanup = setInterval(() => {
+  if (env.documentTtlDays > 0) {
+    const removed = deleteStaleDocuments(env.documentTtlDays);
+    if (removed > 0) console.log(`Pruned ${removed} stale document(s).`);
+  }
+  // Runs whether or not documents are pruned: a picture also becomes
+  // unreferenced by being deleted out of a document that stays.
+  try {
+    const swept = sweepUploads(referencedUploads());
+    if (swept > 0) console.log(`Removed ${swept} unreferenced upload(s).`);
+  }
+  catch (error) {
+    // Deliberately does not fall back to sweeping with what it has: see
+    // referencedUploads. Nothing is deleted this hour, and it tries again.
+    console.error("Upload sweep skipped, nothing deleted:", error);
+  }
+}, 60 * 60 * 1000);
+cleanup.unref();
 
 httpServer.listen(env.port, () => {
   console.log(`Listening on port ${env.port} (${env.nodeEnv})`);
@@ -74,7 +139,7 @@ function shutdown(signal: string): void {
   shuttingDown = true;
   console.log(`${signal} received, shutting down.`);
 
-  if (cleanup) clearInterval(cleanup);
+  clearInterval(cleanup);
   const force = setTimeout(() => process.exit(1), 10_000);
   force.unref();
 

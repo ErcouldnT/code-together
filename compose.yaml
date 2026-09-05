@@ -16,6 +16,10 @@ services:
       - DATABASE_PATH=${DATABASE_PATH:-/app/data/together.db}
       # Delete rooms untouched for N days. 0 keeps everything forever.
       - DOCUMENT_TTL_DAYS=${DOCUMENT_TTL_DAYS:-0}
+      # Pasted and dropped pictures. Same volume as the database on purpose —
+      # they are part of a document, so they belong in the same backup.
+      - UPLOAD_DIR=${UPLOAD_DIR:-/app/data/uploads}
+      - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-26214400}
     volumes:
       - together-data:/app/data
     expose:

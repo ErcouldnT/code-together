@@ -10,6 +10,29 @@ import { TEXT_KEY } from "../shared/ydoc.js";
 import { SocketProvider } from "../client/src/yjs/socketProvider.ts";
 
 /**
+ * The Yjs the *client* uses.
+ *
+ * Root and `client/` are two separate installs with two separate lockfiles, so
+ * each resolves its own copy of yjs. Exchanging encoded updates across the two
+ * is fine — that is all bytes, and it mirrors production, where a browser copy
+ * talks to a server copy. Relative positions are not: they are resolved by
+ * walking the document's own structures, and a position created by one copy
+ * resolves to `undefined` against a document built by the other. Measured, not
+ * assumed. So a test that touches positions must use this one, and
+ * `assertSameYjsAsProvider` turns a silent `undefined` back into a failure if
+ * this path ever stops being the copy the provider loads.
+ */
+// eslint-disable-next-line
+// @ts-expect-error reaching past a package boundary on purpose: this exact file
+// is the module the provider loads, and it carries no types of its own.
+import * as clientYjs from "../client/node_modules/yjs/dist/yjs.mjs";
+import type * as YjsApi from "yjs";
+
+// Same version, same API, different instance — so the types come from the
+// package and only the binding comes from the deep path.
+export const ClientY = clientYjs as unknown as typeof YjsApi;
+
+/**
  * The tests drive the real client provider against the real server over a real
  * socket. Nothing here is a mock: the bugs this suite exists for — divergence
  * under concurrent edits, and a reconnect that silently stops sending — only
@@ -60,6 +83,13 @@ export async function startServer(): Promise<TestServer> {
   const port = (http.address() as AddressInfo).port;
 
   async function stop(): Promise<void> {
+    // An assertion that throws skips the rest of its test, including whatever
+    // cleanup it was going to do. Sockets left open keep the event loop alive
+    // and the whole run hangs until the runner's timeout — which hides the
+    // actual failure behind a second, unrelated one.
+    for (const client of opened) client.destroy();
+    opened.clear();
+
     await new Promise<void>((resolve) => {
       void io.close(() => http.close(() => resolve()));
     });
@@ -78,6 +108,9 @@ export async function startServer(): Promise<TestServer> {
     close: stop,
   };
 }
+
+/** Every client this file has handed out, so a failed test cannot hang the run. */
+const opened = new Set<TestClient>();
 
 export interface TestClient {
   provider: SocketProvider;
@@ -112,7 +145,7 @@ export async function connectClient(url: string, room: string): Promise<TestClie
 
   await synced;
 
-  return {
+  const client: TestClient = {
     provider,
     socket,
     rejections,
@@ -128,10 +161,25 @@ export async function connectClient(url: string, room: string): Promise<TestClie
         socket.connect();
       }),
     destroy: () => {
+      opened.delete(client);
       provider.destroy();
       socket.disconnect();
     },
   };
+  opened.add(client);
+  return client;
+}
+
+/**
+ * Fails loudly if the provider is not built on the Yjs that `ClientY` exports.
+ * Without it, a hoist would make every position test quietly meaningless.
+ */
+export function assertSameYjsAsProvider(client: TestClient, DocClass: unknown): void {
+  if (client.provider.doc.constructor !== DocClass) {
+    throw new Error(
+      "ClientY is not the Yjs the provider uses; relative positions cannot be tested across copies",
+    );
+  }
 }
 
 /** Let every queued socket message land. */

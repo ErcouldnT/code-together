@@ -30,6 +30,19 @@ export const env = {
   /** Updates one socket may send per window before the rest are dropped. */
   updateBurst: int(process.env.UPDATE_BURST, 200),
   updateWindowMs: int(process.env.UPDATE_WINDOW_MS, 10_000),
+
+  /**
+   * Where pasted and dropped pictures are written. Under the same volume as the
+   * database, deliberately: they are as much a part of a document as its text,
+   * and a second mount would be a second thing to remember to back up.
+   */
+  uploadDir: process.env.UPLOAD_DIR ?? "./data/uploads",
+  /**
+   * Largest picture accepted. Generous because the browser already shrinks
+   * anything big before sending it; this is the backstop for a client that
+   * does not, not the normal case.
+   */
+  maxUploadBytes: int(process.env.MAX_UPLOAD_BYTES, 25 * 1024 * 1024),
 } as const;
 
 export const isProduction = env.nodeEnv === "production";

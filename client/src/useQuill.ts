@@ -1,8 +1,9 @@
 import Quill from "quill";
 import QuillCursors from "quill-cursors";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { QuillBinding } from "y-quill";
 import { TEXT_KEY } from "@shared/ydoc";
+import { catchPastedDataUrls, createInserter, IMAGE_MIME_TYPES, type Inserter } from "./editor-images";
 import { connect } from "./socket";
 import { SocketProvider, type ProviderStatus } from "./yjs/socketProvider";
 import "quill/dist/quill.snow.css";
@@ -35,6 +36,8 @@ export interface EditorState {
   status: ProviderStatus;
   /** null when everything is fine */
   problem: string | null;
+  /** how many pictures are on their way up */
+  uploading: number;
 }
 
 /**
@@ -53,6 +56,15 @@ export function useQuill(documentId: string | undefined): EditorState {
   const [status, setStatus] = useState<ProviderStatus>("connecting");
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [uploading, setUploading] = useState(0);
+
+  /*
+   * Quill is built before the document exists, but its image handling has to
+   * reach the document to insert anything. The ref is that seam: Quill's
+   * options are fixed at construction and always call through here, and the
+   * effect below fills it in once the provider has arrived.
+   */
+  const inserter = useRef<Inserter | null>(null);
 
   const containerRef = useCallback((wrapper: HTMLDivElement | null) => {
     if (!wrapper) return;
@@ -63,7 +75,22 @@ export function useQuill(documentId: string | undefined): EditorState {
     const instance = new Quill(editor, {
       theme: "snow",
       placeholder: "Loading…",
-      modules: { toolbar: TOOLBAR_OPTIONS, cursors: true },
+      modules: {
+        toolbar: {
+          container: TOOLBAR_OPTIONS,
+          // Without this the button keeps Quill's own behaviour, which is to
+          // embed the picture as base64 — the one thing uploads exist to stop.
+          handlers: { image: () => inserter.current?.choose() },
+        },
+        cursors: true,
+        // Quill routes both pasted files and dropped files here.
+        uploader: {
+          mimetypes: IMAGE_MIME_TYPES,
+          handler: (_range: unknown, files: File[]) => {
+            void inserter.current?.insert(files);
+          },
+        },
+      },
     });
     // Disabled until the first sync lands. Typing before then is not lost —
     // Yjs merges it — but writing into a document that is about to fill in
@@ -102,12 +129,23 @@ export function useQuill(documentId: string | undefined): EditorState {
 
   useEffect(() => {
     if (!quill || !provider) return;
-    const binding = new QuillBinding(
-      provider.doc.getText(TEXT_KEY),
+    const text = provider.doc.getText(TEXT_KEY);
+    const binding = new QuillBinding(text, quill, provider.awareness);
+
+    const images = createInserter({
       quill,
-      provider.awareness,
-    );
-    return () => binding.destroy();
+      doc: provider.doc,
+      text,
+      onBusy: setUploading,
+      onError: setProblem,
+    });
+    inserter.current = images;
+    catchPastedDataUrls(quill, images);
+
+    return () => {
+      inserter.current = null;
+      binding.destroy();
+    };
   }, [quill, provider]);
 
   useEffect(() => {
@@ -116,5 +154,5 @@ export function useQuill(documentId: string | undefined): EditorState {
     else quill.disable();
   }, [quill, ready]);
 
-  return { containerRef, status, problem };
+  return { containerRef, status, problem, uploading };
 }
