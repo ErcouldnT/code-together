@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { QuillBinding } from "y-quill";
 import { TEXT_KEY } from "@shared/ydoc";
 import { catchPastedDataUrls, createInserter, IMAGE_MIME_TYPES, type Inserter } from "./editor-images";
+import { loadIdentity, saveIdentity, type Identity } from "./identity";
 import { connect } from "./socket";
 import { SocketProvider, type ProviderStatus } from "./yjs/socketProvider";
 import "quill/dist/quill.snow.css";
@@ -38,6 +39,17 @@ export interface EditorState {
   problem: string | null;
   /** how many pictures are on their way up */
   uploading: number;
+  /** null until the socket exists; presence reads awareness off it */
+  provider: SocketProvider | null;
+  /**
+   * Quill builds its own toolbar element, so the presence chips are portalled
+   * into it rather than positioned next to it — that way they sit in the same
+   * flex row and wrap onto their own line on a phone, instead of floating over
+   * the buttons.
+   */
+  toolbar: HTMLElement | null;
+  identity: Identity;
+  rename: (name: string) => void;
 }
 
 /**
@@ -57,6 +69,8 @@ export function useQuill(documentId: string | undefined): EditorState {
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [uploading, setUploading] = useState(0);
+  const [toolbar, setToolbar] = useState<HTMLElement | null>(null);
+  const [identity, setIdentity] = useState<Identity>(loadIdentity);
 
   /*
    * Quill is built before the document exists, but its image handling has to
@@ -97,9 +111,11 @@ export function useQuill(documentId: string | undefined): EditorState {
     // around you reads as a bug.
     instance.disable();
     setQuill(instance);
+    setToolbar((instance.getModule("toolbar") as { container?: HTMLElement } | undefined)?.container ?? null);
 
     return () => {
       setQuill(null);
+      setToolbar(null);
       wrapper.innerHTML = "";
     };
   }, []);
@@ -154,5 +170,20 @@ export function useQuill(documentId: string | undefined): EditorState {
     else quill.disable();
   }, [quill, ready]);
 
-  return { containerRef, status, problem, uploading };
+  // The name and colour every other person sees on this cursor. y-quill reads
+  // `user.name` and `user.color` straight off the awareness state; without
+  // them a cursor is an orange bar labelled "User: 2847391043".
+  useEffect(() => {
+    provider?.awareness.setLocalStateField("user", identity);
+  }, [provider, identity]);
+
+  const rename = useCallback((name: string) => {
+    setIdentity((current) => {
+      const next = { ...current, name };
+      saveIdentity(next);
+      return next;
+    });
+  }, []);
+
+  return { containerRef, status, problem, uploading, provider, toolbar, identity, rename };
 }

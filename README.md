@@ -19,6 +19,11 @@ uploaded and the document holds its address. Quill's own behaviour is to embed
 pictures as base64 *inside* the text, which in a shared document means every
 copy of that blob is broadcast to everyone in the room on every keystroke.
 
+Everyone in a room gets a name and a colour, shown as a chip at the right of
+the toolbar and on their cursor as it moves. There are no accounts — a room is
+a URL — so the name lives in your own browser and you can change it by clicking
+your own chip.
+
 ## Stack
 
 | Layer     | Technology |
@@ -47,6 +52,9 @@ client/
   src/yjs/               binds the Y.Doc and awareness to the socket
   src/useQuill.ts        Quill + QuillBinding
   src/editor-images.ts   paste, drop and the toolbar button, via Quill's uploader
+  src/identity.ts        your name and cursor colour, kept in this browser
+  src/presence.ts        who else is here, read out of Yjs awareness
+  src/components/        presence chips and the connection notice
 tests/                   node:test, run against a real server over a real socket
 ```
 
@@ -115,7 +123,7 @@ Because state lives in one SQLite file and in-process Socket.io rooms, run **one
 
   * [x] Rate limit, request logging, update and document size caps
   * [x] Conflict-free concurrent editing, and reconnect that actually reconnects
-  * [ ] Live cursors and a presence bar (the awareness data is already on the wire)
+  * [x] Live cursors and a presence bar
   * [x] Image upload, so a pasted screenshot is a link and not a megabyte of base64
   * [ ] Document name input
   * [ ] Version history and export (HTML, Markdown, print to PDF)

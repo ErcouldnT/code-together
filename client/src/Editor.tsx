@@ -1,34 +1,23 @@
+import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
+import ConnectionStatus from "./components/ConnectionStatus";
+import PresenceBar from "./components/PresenceBar";
 import { useQuill } from "./useQuill";
-
-const STATUS_TEXT = {
-  connecting: "Connecting…",
-  syncing: "Syncing…",
-  synced: null,
-  offline: "Offline — your changes will be sent when the connection returns.",
-} as const;
 
 export default function Editor() {
   const { id: documentId } = useParams<{ id: string }>();
-  const { containerRef, status, problem, uploading } = useQuill(documentId);
-
-  // Only shown when there is something to say. A silently broken connection is
-  // the failure this whole rewrite is about; saying nothing while synced is the
-  // other half of being honest about it.
-  const notice
-    = problem
-      ?? (uploading > 0
-        ? `Uploading ${uploading} picture${uploading === 1 ? "" : "s"}…`
-        : STATUS_TEXT[status]);
+  const { containerRef, status, problem, uploading, provider, toolbar, identity, rename }
+    = useQuill(documentId);
 
   return (
     <>
-      {notice && (
-        <p className="notice" role="status" data-kind={problem ? "problem" : "info"}>
-          {notice}
-        </p>
-      )}
+      <ConnectionStatus status={status} problem={problem} uploading={uploading} />
       <div className="container" ref={containerRef} />
+      {toolbar
+        && createPortal(
+          <PresenceBar provider={provider} identity={identity} onRename={rename} />,
+          toolbar,
+        )}
     </>
   );
 }

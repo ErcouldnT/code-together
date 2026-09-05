@@ -282,3 +282,68 @@ body {
   color: var(--text);
   border-color: #d14343;
 }
+
+/*
+ * The presence chips, portalled into Quill's own toolbar so they share its
+ * flex row. `margin-left: auto` puts them at the right end when the row has
+ * space and lets them wrap onto their own line when it does not — which is
+ * what happens on a phone, where the toolbar already wraps.
+ */
+.presence {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+/*
+ * Quill styles every `button` inside its toolbar (28x24, its own padding), and
+ * `.ql-snow.ql-toolbar button` outranks a lone class selector — which quietly
+ * made these chips ellipses rather than circles. Four classes beats it, and
+ * beats the coarse-pointer override further down too.
+ */
+.container .ql-toolbar.ql-snow .presence-chip {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  /* The chip colours are per-person and fixed, so the text on them cannot come
+     from a theme token. White reads on all seven; they were chosen for it. */
+  color: #ffffff;
+  font: 600 11px/1 system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  cursor: default;
+}
+
+.container .ql-toolbar.ql-snow .presence-chip[data-self] {
+  cursor: pointer;
+  /* your own chip, marked without adding a colour of its own */
+  box-shadow: 0 0 0 2px var(--toolbar-bg), 0 0 0 3px var(--icon);
+}
+
+.presence-name {
+  width: 9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--sheet-bg);
+  padding: 0.2rem 0.4rem;
+  color: var(--text);
+  font: 0.8rem/1.2 system-ui, sans-serif;
+}
+
+/* Quill draws remote cursors as absolutely positioned carets; the name flag
+   above them is its own element and inherits nothing useful by default. */
+.container .ql-cursor-flag {
+  border-radius: 3px;
+  font: 600 11px/1.4 system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+@media print {
+  .presence,
+  .notice {
+    display: none;
+  }
+}
