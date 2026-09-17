@@ -1,7 +1,9 @@
 import { Delta } from "quill";
 import { useEffect, useState } from "react";
+import type { DeltaOp } from "@shared/events";
 import { TEXT_KEY } from "@shared/ydoc";
 import type { SocketProvider } from "../yjs/socketProvider";
+import VersionPreview from "./VersionPreview";
 
 /**
  * Going back to how the document was.
@@ -15,6 +17,9 @@ import type { SocketProvider } from "../yjs/socketProvider";
  * Resetting the CRDT instead would mean every other person in the room is
  * holding a document the server has never seen, and the two would merge rather
  * than replace: the old text would come straight back, doubled.
+ *
+ * Nothing here restores blind: a version is opened and read first, and the
+ * confirmation lives in that view, next to what it would do.
  */
 
 interface Snapshot {
@@ -34,7 +39,7 @@ const when = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle
 export default function HistoryPanel({ documentId, provider, onClose }: Props) {
   const [snapshots, setSnapshots] = useState<Snapshot[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<{ id: string; when: string; ops: DeltaOp[] } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -52,15 +57,24 @@ export default function HistoryPanel({ documentId, provider, onClose }: Props) {
     };
   }, [documentId]);
 
-  async function restore(snapshotId: string) {
+  async function open(snapshot: Snapshot) {
+    setError(null);
+    try {
+      const response = await fetch(`/api/documents/${documentId}/snapshots/${snapshot.id}`);
+      if (!response.ok) throw new Error("failed");
+      const { ops } = (await response.json()) as { ops: DeltaOp[] };
+      setViewing({ id: snapshot.id, when: when.format(snapshot.createdAt), ops });
+    }
+    catch {
+      setError("Could not open that version.");
+    }
+  }
+
+  function restore(ops: DeltaOp[]) {
     if (!provider) return;
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/documents/${documentId}/snapshots/${snapshotId}`);
-      if (!response.ok) throw new Error("failed");
-      const { ops } = (await response.json()) as { ops: unknown[] };
-
       const text = provider.doc.getText(TEXT_KEY);
       const current = new Delta(text.toDelta() as ConstructorParameters<typeof Delta>[0]);
       const target = new Delta(ops as ConstructorParameters<typeof Delta>[0]);
@@ -75,6 +89,11 @@ export default function HistoryPanel({ documentId, provider, onClose }: Props) {
       setBusy(false);
     }
   }
+
+  // Read when a version is opened rather than watched: the comparison is
+  // against the document the person is looking at, and a diff that reshuffles
+  // itself while a colleague types is unreadable.
+  const currentOps = (viewing && provider ? provider.doc.getText(TEXT_KEY).toDelta() : []) as DeltaOp[];
 
   return (
     <div className="history" role="dialog" aria-label="Version history">
@@ -95,35 +114,25 @@ export default function HistoryPanel({ documentId, provider, onClose }: Props) {
       {snapshots?.map((snapshot) => (
         <div className="history-row" key={snapshot.id}>
           <span className="history-when">{when.format(snapshot.createdAt)}</span>
-          {confirming === snapshot.id
-            ? (
-                <span className="history-confirm">
-                  <button
-                    type="button"
-                    className="menu-button"
-                    disabled={busy}
-                    onClick={() => void restore(snapshot.id)}
-                  >
-                    {busy ? "Restoring…" : "Yes, restore"}
-                  </button>
-                  <button type="button" className="menu-button" onClick={() => setConfirming(null)}>
-                    Cancel
-                  </button>
-                </span>
-              )
-            : (
-                // Two steps rather than a browser confirm dialogue: this changes
-                // the document for everyone else in the room too.
-                <button
-                  type="button"
-                  className="menu-button"
-                  onClick={() => setConfirming(snapshot.id)}
-                >
-                  Restore
-                </button>
-              )}
+          {/* Opening it is the first of the two steps a restore takes — this
+              changes the document for everyone else in the room too, so the
+              confirmation sits inside the view of what it would do. */}
+          <button type="button" className="menu-button" onClick={() => void open(snapshot)}>
+            Open
+          </button>
         </div>
       ))}
+
+      {viewing && (
+        <VersionPreview
+          when={viewing.when}
+          ops={viewing.ops}
+          current={currentOps}
+          busy={busy}
+          onRestore={() => restore(viewing.ops)}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }

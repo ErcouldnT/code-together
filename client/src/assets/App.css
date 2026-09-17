@@ -359,6 +359,7 @@ body {
   .presence,
   .notice,
   .savestate,
+  .preview,
   .topbar,
   .history {
     display: none;
@@ -659,4 +660,79 @@ body {
 
 .history-error {
   color: #d14343;
+}
+
+/*
+ * A version, read before it is restored. Wider than the history list it opens
+ * from, because a document read at 24rem is not being read — and centred over
+ * the editor rather than beside it, so the two are never mistaken for each
+ * other while one of them is not editable.
+ */
+.preview {
+  position: fixed;
+  z-index: 7;
+  inset: calc(var(--topbar-h) + 0.4rem) 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  width: min(48rem, 96vw);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--panel-bg);
+  box-shadow: var(--shadow);
+  padding: 0.75rem;
+}
+
+.preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.preview-title {
+  flex: 1;
+  min-width: 8rem;
+  margin: 0;
+  color: var(--text);
+  font: 600 0.95rem/1.3 system-ui, sans-serif;
+}
+
+.preview-modes,
+.preview-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+/* The pressed one is the view you are in, not a button waiting to be used. */
+.preview-modes .menu-button[aria-pressed="true"] {
+  border-color: var(--text);
+  font-weight: 600;
+}
+
+.preview-legend {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font: 0.8rem/1.4 system-ui, sans-serif;
+}
+
+/* The sheet, scrolling inside the panel rather than the panel scrolling. */
+.preview-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--sheet-bg);
+}
+
+.preview-body .ql-container.ql-snow {
+  border: none;
+  font-family: inherit;
+}
+
+.preview-body .ql-editor {
+  color: var(--text);
+  font-size: 1rem;
 }
