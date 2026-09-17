@@ -23,6 +23,8 @@ export type ProviderStatus = "connecting" | "syncing" | "synced" | "offline";
 
 export interface ProviderEvents {
   onStatus?: (status: ProviderStatus) => void;
+  /** true while this browser holds changes the server has not saved */
+  onUnsaved?: (unsaved: boolean) => void;
   onJoinError?: (reason: JoinErrorReason) => void;
   onRejected?: (reason: UpdateRejection) => void;
 }
@@ -35,6 +37,11 @@ export class SocketProvider {
   #documentId: string;
   #events: ProviderEvents;
   #destroyed = false;
+  /** local updates emitted but not yet acknowledged as saved */
+  #inFlight = 0;
+  /** edits made with the socket down, which are not even on their way */
+  #offline = false;
+  #unsaved = false;
 
   constructor(socket: AppSocket, documentId: string, events: ProviderEvents = {}) {
     this.#socket = socket;
@@ -63,6 +70,18 @@ export class SocketProvider {
     this.#events.onStatus?.(status);
   }
 
+  /** Is there work in this tab that closing it would lose? */
+  get unsaved(): boolean {
+    return this.#unsaved;
+  }
+
+  #settle(): void {
+    const unsaved = this.#offline || this.#inFlight > 0;
+    if (unsaved === this.#unsaved) return;
+    this.#unsaved = unsaved;
+    this.#events.onUnsaved?.(unsaved);
+  }
+
   /**
    * Ask for the difference, not the document.
    *
@@ -81,6 +100,11 @@ export class SocketProvider {
 
   #onDisconnect = (): void => {
     this.#status("offline");
+    // Acknowledgements for anything still in flight died with the socket, so
+    // those changes go back to being unsaved until the next handshake lands.
+    if (this.#inFlight > 0) this.#offline = true;
+    this.#inFlight = 0;
+    this.#settle();
     // Remote cursors belong to people we can no longer hear from. Left on
     // screen they are a lie that gets worse the longer the outage lasts.
     const remote = [...this.awareness.getStates().keys()].filter(
@@ -92,7 +116,19 @@ export class SocketProvider {
   #onSyncStep1 = (stateVector: Uint8Array): void => {
     // What the server is missing, which after an offline stretch is every edit
     // made while disconnected, merged into one update.
-    this.#socket.emit("sync-step-2", Y.encodeStateAsUpdate(this.doc, new Uint8Array(stateVector)));
+    // This one update carries everything written while offline, so its
+    // acknowledgement is what clears the offline backlog.
+    this.#inFlight += 1;
+    this.#settle();
+    this.#socket.emit(
+      "sync-step-2",
+      Y.encodeStateAsUpdate(this.doc, new Uint8Array(stateVector)),
+      () => {
+        this.#offline = false;
+        this.#inFlight = Math.max(0, this.#inFlight - 1);
+        this.#settle();
+      },
+    );
   };
 
   #onSyncStep2 = (update: Uint8Array): void => {
@@ -126,8 +162,18 @@ export class SocketProvider {
    * the same work twice, in more packets.
    */
   #onLocalUpdate = (update: Uint8Array, origin: unknown): void => {
-    if (origin === this || !this.#socket.connected) return;
-    this.#socket.emit("update", update);
+    if (origin === this) return;
+    if (!this.#socket.connected) {
+      this.#offline = true;
+      this.#settle();
+      return;
+    }
+    this.#inFlight += 1;
+    this.#settle();
+    this.#socket.emit("update", update, () => {
+      this.#inFlight = Math.max(0, this.#inFlight - 1);
+      this.#settle();
+    });
   };
 
   #onLocalAwareness = (

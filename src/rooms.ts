@@ -48,6 +48,8 @@ export interface Room {
 interface RoomState extends Room {
   saveTimer: NodeJS.Timeout | null;
   dirty: boolean;
+  /** callers waiting for the next write to disk — see `whenSaved` */
+  waiting: (() => void)[];
 }
 
 const rooms = new Map<string, RoomState>();
@@ -57,13 +59,40 @@ function flush(room: RoomState): void {
     clearTimeout(room.saveTimer);
     room.saveTimer = null;
   }
-  if (!room.dirty) return;
+  if (!room.dirty) {
+    release(room);
+    return;
+  }
   room.dirty = false;
   saveDocument(room.id, room.doc);
   room.bytes = Y.encodeStateAsUpdate(room.doc).byteLength;
   // Hangs off the save rather than a timer of its own: a document nobody is
   // editing is never saved, so it never accumulates identical snapshots.
   takeSnapshot(room.id, room.doc);
+  release(room);
+}
+
+/** Everyone who was waiting for this write now has it. */
+function release(room: RoomState): void {
+  const waiting = room.waiting.splice(0);
+  for (const done of waiting) done();
+}
+
+/**
+ * Call back once the document has been written to disk.
+ *
+ * The client uses this to know whether closing the tab would lose anything, so
+ * it has to mean *saved*, not *received*: a room is dirty for up to
+ * `SAVE_INTERVAL_MS` after an update lands, and a crash inside that window
+ * loses it. If nothing is pending the callback runs immediately.
+ */
+export function whenSaved(room: Room, done: () => void): void {
+  const state = rooms.get(room.id);
+  if (!state || !state.dirty) {
+    done();
+    return;
+  }
+  state.waiting.push(done);
 }
 
 function scheduleSave(room: RoomState): void {
@@ -88,6 +117,7 @@ function openRoom(id: string): RoomState {
     bytes: Y.encodeStateAsUpdate(doc).byteLength,
     saveTimer: null,
     dirty: false,
+    waiting: [],
   };
   // The local awareness state belongs to a browser, not to the server. Left in
   // place, the server would announce itself as a participant with no cursor.

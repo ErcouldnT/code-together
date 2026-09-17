@@ -61,10 +61,16 @@ export interface ClientToServerEvents {
    * with a warm document downloads almost nothing.
    */
   "join": (documentId: string, stateVector: Uint8Array) => void;
-  /** The client's half of the handshake, and its answer to `sync-step-1`. */
-  "sync-step-2": (update: Uint8Array) => void;
-  /** A local change. */
-  "update": (update: Uint8Array) => void;
+  /**
+   * The client's half of the handshake, and its answer to `sync-step-1`.
+   *
+   * The acknowledgement fires once the update has been written to SQLite, not
+   * when it arrives — that is what lets the client tell whether closing the tab
+   * would lose anything.
+   */
+  "sync-step-2": (update: Uint8Array, ack?: () => void) => void;
+  /** A local change. Acknowledged once saved, as above. */
+  "update": (update: Uint8Array, ack?: () => void) => void;
   /** Local presence. */
   "awareness": (update: Uint8Array) => void;
 }

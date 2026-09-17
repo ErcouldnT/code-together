@@ -12,7 +12,7 @@ import type {
   UpdateRejection,
 } from "../shared/events.js";
 import { env } from "./env.js";
-import { joinRoom, leaveRoom, ROOM_ID, type Room } from "./rooms.js";
+import { joinRoom, leaveRoom, ROOM_ID, whenSaved, type Room } from "./rooms.js";
 
 interface SocketData {
   room?: Room;
@@ -48,7 +48,7 @@ function withinRate(socket: AppSocket): boolean {
  * converges on the same state whichever order they land in, and re-encoding
  * would only cost CPU and risk sending back more than the sender needs.
  */
-function ingest(socket: AppSocket, update: unknown): void {
+function ingest(socket: AppSocket, update: unknown, ack?: () => void): void {
   const room = socket.data.room;
   const reject = (reason: UpdateRejection): void => {
     socket.emit("update-rejected", reason);
@@ -69,6 +69,9 @@ function ingest(socket: AppSocket, update: unknown): void {
     return reject("too-large");
   }
   socket.broadcast.to(room.id).emit("update", bytes);
+  // Only once it is on disk. A refused update is never acknowledged at all:
+  // the client is meant to go on considering it unsaved, because it is.
+  if (ack) whenSaved(room, ack);
 }
 
 export function attachSockets(httpServer: HttpServer): IoServer {
@@ -147,8 +150,8 @@ export function attachSockets(httpServer: HttpServer): IoServer {
       }
     });
 
-    socket.on("sync-step-2", (update) => ingest(socket, update));
-    socket.on("update", (update) => ingest(socket, update));
+    socket.on("sync-step-2", (update, ack) => ingest(socket, update, ack));
+    socket.on("update", (update, ack) => ingest(socket, update, ack));
 
     socket.on("awareness", (update) => {
       const room = socket.data.room;

@@ -39,6 +39,12 @@ export interface EditorState {
   problem: string | null;
   /** how many pictures are on their way up */
   uploading: number;
+  /**
+   * True while this tab holds work the server has not written to disk — an
+   * upload still climbing, or an edit the server has not acknowledged. Closing
+   * the tab now would lose it, so the browser is asked to confirm first.
+   */
+  unsaved: boolean;
   /** false until the first sync lands — the skeleton is up until it does */
   ready: boolean;
   /** null until the socket exists; presence reads awareness off it */
@@ -78,6 +84,7 @@ export function useQuill(documentId: string | undefined): EditorState {
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [uploading, setUploading] = useState(0);
+  const [pending, setPending] = useState(false);
   const [toolbar, setToolbar] = useState<HTMLElement | null>(null);
   const [editorArea, setEditorArea] = useState<HTMLElement | null>(null);
   const [identity, setIdentity] = useState<Identity>(loadIdentity);
@@ -143,6 +150,7 @@ export function useQuill(documentId: string | undefined): EditorState {
         setStatus(next);
         if (next === "synced") setReady(true);
       },
+      onUnsaved: setPending,
       onJoinError: (reason) => setProblem(MESSAGES[reason]),
       onRejected: (reason) => setProblem(MESSAGES[reason]),
     });
@@ -152,6 +160,7 @@ export function useQuill(documentId: string | undefined): EditorState {
       instance.destroy();
       socket.disconnect();
       setProvider(null);
+      setPending(false);
     };
   }, [documentId]);
 
@@ -189,6 +198,24 @@ export function useQuill(documentId: string | undefined): EditorState {
     provider?.awareness.setLocalStateField("user", identity);
   }, [provider, identity]);
 
+  const unsaved = pending || uploading > 0;
+
+  /*
+   * The only moment the browser lets us speak up. `preventDefault` is what asks
+   * for the dialog; the wording is the browser's own and cannot be set, so
+   * there is nothing to write here. Registered only while something really is
+   * outstanding — a listener that is always attached makes some browsers treat
+   * every close as risky.
+   */
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsaved]);
+
   const rename = useCallback((name: string) => {
     setIdentity((current) => {
       const next = { ...current, name };
@@ -202,6 +229,7 @@ export function useQuill(documentId: string | undefined): EditorState {
     status,
     problem,
     uploading,
+    unsaved,
     ready,
     provider,
     toolbar,
