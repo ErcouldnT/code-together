@@ -7,7 +7,7 @@ import { closeDatabase, runMigrations } from "./db/index.js";
 import { contentsOf, deleteStaleDocuments, referencedUploads, storedContents } from "./documents.js";
 import { env, isProduction } from "./env.js";
 import { toHtmlDocument, toMarkdown } from "./export.js";
-import { closeAllRooms, peekRoom, ROOM_ID } from "./rooms.js";
+import { closeAllRooms, peekRoom, ROOM_ID, roomStats } from "./rooms.js";
 import { listSnapshots, snapshotContents } from "./snapshots.js";
 import { attachSockets } from "./sockets.js";
 import { mimeForStoredName, pathForStoredName, storeUpload, sweepUploads } from "./uploads.js";
@@ -33,8 +33,21 @@ app.use(
   }),
 );
 
+/**
+ * Liveness, and enough to tell a quiet process from a stuck one.
+ *
+ * Everything here is read out of memory — a health check that queries the
+ * database is a health check that reports the database's problems as its own,
+ * and this one runs every thirty seconds forever.
+ */
 app.get("/healthz", (_req, res) => {
-  res.json({ ok: true, uptime: process.uptime() });
+  const { heapUsed, rss } = process.memoryUsage();
+  res.json({
+    ok: true,
+    uptime: process.uptime(),
+    ...roomStats(),
+    memory: { rss, heapUsed },
+  });
 });
 
 // The document itself travels over the socket, so this only guards the HTML and

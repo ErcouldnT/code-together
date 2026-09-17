@@ -165,6 +165,24 @@ export function activeRooms(): number {
   return rooms.size;
 }
 
+/**
+ * What the registry is holding, for the health check.
+ *
+ * Rooms and editors are the two numbers that say whether this process is busy
+ * or wedged; `unsaved` is the one that says whether it is *behind*, and a
+ * number that does not fall back to zero is the first sign the save path has
+ * stopped running.
+ */
+export function roomStats(): { rooms: number; editors: number; unsaved: number } {
+  let editors = 0;
+  let unsaved = 0;
+  for (const room of rooms.values()) {
+    editors += room.members.size;
+    if (room.dirty) unsaved += 1;
+  }
+  return { rooms: rooms.size, editors, unsaved };
+}
+
 /** Final write for every open room. Called on SIGTERM, before the DB closes. */
 export function closeAllRooms(): void {
   for (const room of rooms.values()) {
