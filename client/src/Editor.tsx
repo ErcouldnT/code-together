@@ -22,6 +22,8 @@ export default function Editor() {
     editorArea,
     identity,
     rename,
+    saveState,
+    onThisDevice,
   } = useQuill(documentId);
   const { title, setTitle, onFocus, onBlur } = useTitle(provider, documentId);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -36,6 +38,8 @@ export default function Editor() {
           onFocus={onFocus}
           onBlur={onBlur}
           onShowHistory={() => setHistoryOpen(true)}
+          saveState={saveState}
+          onThisDevice={onThisDevice}
         />
       )}
 

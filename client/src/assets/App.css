@@ -358,6 +358,7 @@ body {
 @media print {
   .presence,
   .notice,
+  .savestate,
   .topbar,
   .history {
     display: none;
@@ -506,6 +507,30 @@ body {
   border-color: var(--border);
   background-color: var(--sheet-bg);
   outline: none;
+}
+
+/*
+ * Reads as a caption, not a badge: it is present all the time, and anything
+ * with a border or a coloured pill next to the title competes with the title.
+ * Only "Offline" is allowed to stand out, because only it asks for anything.
+ */
+.savestate {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font: 500 0.78rem/1 system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.savestate[data-state="offline"] {
+  color: #b45309;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .savestate[data-state="offline"] {
+    color: #fbbf24;
+  }
 }
 
 .menu {

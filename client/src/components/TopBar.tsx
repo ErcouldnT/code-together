@@ -1,4 +1,6 @@
+import type { SaveState } from "../useQuill";
 import DocumentMenu from "./DocumentMenu";
+import SaveStateBadge from "./SaveState";
 
 /**
  * The document's own row: what it is called, and what you can do with it.
@@ -15,10 +17,21 @@ interface Props {
   onFocus: () => void;
   onBlur: () => void;
   onShowHistory: () => void;
+  saveState: SaveState;
+  onThisDevice: boolean;
 }
 
 export default function TopBar(
-  { documentId, title, onTitleChange, onFocus, onBlur, onShowHistory }: Props,
+  {
+    documentId,
+    title,
+    onTitleChange,
+    onFocus,
+    onBlur,
+    onShowHistory,
+    saveState,
+    onThisDevice,
+  }: Props,
 ) {
   return (
     <header className="topbar">
@@ -32,6 +45,7 @@ export default function TopBar(
         onFocus={onFocus}
         onBlur={onBlur}
       />
+      <SaveStateBadge state={saveState} onThisDevice={onThisDevice} />
       <DocumentMenu documentId={documentId} onShowHistory={onShowHistory} />
     </header>
   );

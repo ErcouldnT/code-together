@@ -6,6 +6,7 @@ import { TEXT_KEY } from "@shared/ydoc";
 import { catchPastedDataUrls, createInserter, IMAGE_MIME_TYPES, type Inserter } from "./editor-images";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
 import { connect } from "./socket";
+import { keepLocalCopy } from "./yjs/offline";
 import { SocketProvider, type ProviderStatus } from "./yjs/socketProvider";
 import "quill/dist/quill.snow.css";
 
@@ -32,6 +33,12 @@ const MESSAGES = {
   "not-joined": "Not connected to the document yet.",
 } as const;
 
+/**
+ * What the save indicator says. Coarse on purpose: the useful question is
+ * whether the document is somewhere other than this tab yet.
+ */
+export type SaveState = "saving" | "saved" | "offline";
+
 export interface EditorState {
   containerRef: (node: HTMLDivElement | null) => void;
   status: ProviderStatus;
@@ -40,11 +47,15 @@ export interface EditorState {
   /** how many pictures are on their way up */
   uploading: number;
   /**
-   * True while this tab holds work the server has not written to disk — an
-   * upload still climbing, or an edit the server has not acknowledged. Closing
-   * the tab now would lose it, so the browser is asked to confirm first.
+   * True while this tab holds work that closing it would destroy — a picture
+   * still uploading, or an unsent edit in a browser with no local copy to
+   * recover from. The browser is asked to confirm the close.
    */
   unsaved: boolean;
+  /** for the indicator in the title row */
+  saveState: SaveState;
+  /** whether a copy of the document is kept in this browser's storage */
+  onThisDevice: boolean;
   /** false until the first sync lands — the skeleton is up until it does */
   ready: boolean;
   /** null until the socket exists; presence reads awareness off it */
@@ -85,6 +96,7 @@ export function useQuill(documentId: string | undefined): EditorState {
   const [ready, setReady] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [pending, setPending] = useState(false);
+  const [onThisDevice, setOnThisDevice] = useState(false);
   const [toolbar, setToolbar] = useState<HTMLElement | null>(null);
   const [editorArea, setEditorArea] = useState<HTMLElement | null>(null);
   const [identity, setIdentity] = useState<Identity>(loadIdentity);
@@ -156,11 +168,24 @@ export function useQuill(documentId: string | undefined): EditorState {
     });
     setProvider(instance);
 
+    // Reading the stored copy is what makes an offline reload show the
+    // document instead of an empty page, so the editor opens on it without
+    // waiting for a server that may not answer.
+    const local = keepLocalCopy(instance.doc, documentId);
+    setOnThisDevice(local !== null);
+    let live = true;
+    void local?.whenLoaded.then(() => {
+      if (live) setReady(true);
+    });
+
     return () => {
+      live = false;
+      local?.destroy();
       instance.destroy();
       socket.disconnect();
       setProvider(null);
       setPending(false);
+      setOnThisDevice(false);
     };
   }, [documentId]);
 
@@ -198,7 +223,18 @@ export function useQuill(documentId: string | undefined): EditorState {
     provider?.awareness.setLocalStateField("user", identity);
   }, [provider, identity]);
 
-  const unsaved = pending || uploading > 0;
+  /*
+   * A picture still climbing is lost on close whatever else is true: the bytes
+   * live in this tab and nowhere else until the upload finishes. Unsent edits
+   * only matter here when there is no copy on this device to come back to.
+   */
+  const saveState: SaveState = status === "offline"
+    ? "offline"
+    : pending || uploading > 0 || status !== "synced"
+      ? "saving"
+      : "saved";
+
+  const unsaved = uploading > 0 || (pending && !onThisDevice);
 
   /*
    * The only moment the browser lets us speak up. `preventDefault` is what asks
@@ -230,6 +266,8 @@ export function useQuill(documentId: string | undefined): EditorState {
     problem,
     uploading,
     unsaved,
+    saveState,
+    onThisDevice,
     ready,
     provider,
     toolbar,
