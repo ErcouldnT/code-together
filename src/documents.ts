@@ -2,6 +2,7 @@ import { eq, lt } from "drizzle-orm";
 import * as Y from "yjs";
 import type { DeltaOp, LegacyDocumentData } from "../shared/events.js";
 import { META_KEY, TEXT_KEY } from "../shared/ydoc.js";
+import { deleteAttachmentFiles } from "./attachments.js";
 import { db } from "./db/index.js";
 import { documents } from "./db/schema.js";
 import { storedNameIn, storeUpload } from "./uploads.js";
@@ -203,5 +204,8 @@ export function storedContents(id: string): DocumentContents | null {
 export function deleteStaleDocuments(ttlDays: number): number {
   if (ttlDays <= 0) return 0;
   const cutoff = new Date(Date.now() - ttlDays * 24 * 60 * 60 * 1000);
-  return db.delete(documents).where(lt(documents.updatedAt, cutoff)).run().changes;
+  const stale = db.delete(documents).where(lt(documents.updatedAt, cutoff)).returning({ id: documents.id }).all();
+  // The rows went with the document by cascade; the bytes have to be removed by hand.
+  for (const { id } of stale) deleteAttachmentFiles(id);
+  return stale.length;
 }

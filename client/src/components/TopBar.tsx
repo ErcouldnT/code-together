@@ -17,6 +17,7 @@ interface Props {
   onFocus: () => void;
   onBlur: () => void;
   onShowHistory: () => void;
+  onShowAttachments: () => void;
   saveState: SaveState;
   onThisDevice: boolean;
 }
@@ -29,6 +30,7 @@ export default function TopBar(
     onFocus,
     onBlur,
     onShowHistory,
+    onShowAttachments,
     saveState,
     onThisDevice,
   }: Props,
@@ -46,7 +48,7 @@ export default function TopBar(
         onBlur={onBlur}
       />
       <SaveStateBadge state={saveState} onThisDevice={onThisDevice} />
-      <DocumentMenu documentId={documentId} onShowHistory={onShowHistory} />
+      <DocumentMenu documentId={documentId} onShowHistory={onShowHistory} onShowAttachments={onShowAttachments} />
     </header>
   );
 }

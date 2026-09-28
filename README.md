@@ -129,6 +129,7 @@ deleting a picture between the upload finishing and the document being saved.
 | `UPDATE_BURST` / `UPDATE_WINDOW_MS` | no | `200` / `10000` | Per-socket update rate limit. |
 | `UPLOAD_DIR` | no | `/app/data/uploads` | Pictures. Keep it under `/app/data` — same volume as the database, so one backup covers a document and its pictures. |
 | `MAX_UPLOAD_BYTES` | no | `26214400` | Largest picture accepted. The browser shrinks anything big first; this is the backstop. |
+| `MAX_ATTACHMENT_BYTES` | no | `1073741824` | Largest file that can be attached to a document (1 GB). Streamed to disk, not held in memory. |
 | `SNAPSHOT_EVERY_MS` | no | `600000` | How often a changing document earns a point in its history. |
 | `SNAPSHOT_KEEP` | no | `20` | Points kept per document; older ones are dropped. |
 

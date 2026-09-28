@@ -43,6 +43,11 @@ export const env = {
    * does not, not the normal case.
    */
   maxUploadBytes: int(process.env.MAX_UPLOAD_BYTES, 25 * 1024 * 1024),
+  /**
+   * Largest file that may be attached to a document. Attachments are streamed
+   * to disk rather than buffered, so this is a disk budget, not a memory one.
+   */
+  maxAttachmentBytes: int(process.env.MAX_ATTACHMENT_BYTES, 1024 * 1024 * 1024),
 
   /**
    * How often a changing document earns a point in its history, and how many

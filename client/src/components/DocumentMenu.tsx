@@ -9,9 +9,10 @@ import { recentDocuments, type RecentDocument } from "../recent";
 interface Props {
   documentId: string;
   onShowHistory: () => void;
+  onShowAttachments: () => void;
 }
 
-export default function DocumentMenu({ documentId, onShowHistory }: Props) {
+export default function DocumentMenu({ documentId, onShowHistory, onShowAttachments }: Props) {
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<RecentDocument[]>([]);
   const root = useRef<HTMLDivElement>(null);
@@ -92,6 +93,17 @@ export default function DocumentMenu({ documentId, onShowHistory }: Props) {
             }}
           >
             Version history
+          </button>
+          <button
+            type="button"
+            className="menu-item"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onShowAttachments();
+            }}
+          >
+            Attachments
           </button>
 
           {recent.length > 0 && (

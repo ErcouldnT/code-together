@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import { pinoHttp } from "pino-http";
+import { attachmentRoutes } from "./attachments.js";
 import { closeDatabase, runMigrations } from "./db/index.js";
 import { contentsOf, deleteStaleDocuments, referencedUploads, storedContents } from "./documents.js";
 import { env, isProduction } from "./env.js";
@@ -114,6 +115,10 @@ app.get("/uploads/:name", (req, res) => {
     if (error) res.sendStatus(404);
   });
 });
+
+// Files attached to a document. Everyone in the room is told when the list
+// changes, so a second tab never shows a file that is already gone.
+app.use(attachmentRoutes((documentId) => io.to(documentId).emit("attachments-changed")));
 
 /**
  * Take the document away as a file.

@@ -662,6 +662,48 @@ body {
   color: #d14343;
 }
 
+/* Attachments reuse the history panel and add only what a file list needs. */
+.attachments-dragging {
+  outline: 2px dashed var(--muted);
+  outline-offset: -6px;
+}
+
+.attachments-add {
+  width: 100%;
+}
+
+.attachments-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.attachments-name {
+  overflow: hidden;
+  color: var(--text);
+  font: 0.85rem/1.3 system-ui, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachments-meta {
+  color: var(--muted);
+  font: 0.75rem/1.3 system-ui, sans-serif;
+}
+
+.attachments-progress {
+  width: 6rem;
+  flex-shrink: 0;
+}
+
+.attachments-danger {
+  color: #d14343;
+}
+
+a.menu-button {
+  text-decoration: none;
+}
+
 /*
  * A version, read before it is restored. Wider than the history list it opens
  * from, because a document read at 24rem is not being read — and centred over

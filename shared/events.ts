@@ -52,6 +52,11 @@ export interface ServerToClientEvents {
    * — silence here is exactly the failure this rewrite exists to remove.
    */
   "update-rejected": (reason: UpdateRejection) => void;
+  /**
+   * A file was attached to or removed from the document. Carries nothing:
+   * attachments live outside the CRDT, so the client re-reads the list.
+   */
+  "attachments-changed": () => void;
 }
 
 export interface ClientToServerEvents {

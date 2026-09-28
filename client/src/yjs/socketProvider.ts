@@ -70,6 +70,11 @@ export class SocketProvider {
     this.#events.onStatus?.(status);
   }
 
+  /** The socket underneath, for room events that are not the document itself. */
+  get socket(): AppSocket {
+    return this.#socket;
+  }
+
   /** Is there work in this tab that closing it would lose? */
   get unsaved(): boolean {
     return this.#unsaved;

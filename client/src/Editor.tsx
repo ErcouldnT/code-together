@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
+import AttachmentsPanel from "./components/AttachmentsPanel";
 import ConnectionStatus from "./components/ConnectionStatus";
 import DocumentSkeleton from "./components/DocumentSkeleton";
 import HistoryPanel from "./components/HistoryPanel";
@@ -26,7 +27,8 @@ export default function Editor() {
     onThisDevice,
   } = useQuill(documentId);
   const { title, setTitle, onFocus, onBlur } = useTitle(provider, documentId);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  // One panel at a time: they sit in the same place.
+  const [panel, setPanel] = useState<"history" | "attachments" | null>(null);
 
   return (
     <>
@@ -37,17 +39,27 @@ export default function Editor() {
           onTitleChange={setTitle}
           onFocus={onFocus}
           onBlur={onBlur}
-          onShowHistory={() => setHistoryOpen(true)}
+          onShowHistory={() => setPanel("history")}
+          onShowAttachments={() => setPanel("attachments")}
           saveState={saveState}
           onThisDevice={onThisDevice}
         />
       )}
 
-      {historyOpen && documentId && (
+      {panel === "history" && documentId && (
         <HistoryPanel
           documentId={documentId}
           provider={provider}
-          onClose={() => setHistoryOpen(false)}
+          onClose={() => setPanel(null)}
+        />
+      )}
+
+      {panel === "attachments" && documentId && (
+        <AttachmentsPanel
+          documentId={documentId}
+          provider={provider}
+          addedBy={identity.name}
+          onClose={() => setPanel(null)}
         />
       )}
 

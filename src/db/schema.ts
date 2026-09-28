@@ -69,6 +69,32 @@ export const documentSnapshots = sqliteTable(
   (table) => [index("document_snapshots_document_idx").on(table.documentId, table.createdAt)],
 );
 
+/**
+ * Files attached to a document — anything, not only pictures.
+ *
+ * Kept out of the Yjs document on purpose: an attachment is not part of the
+ * text's history, so restoring an old version must not bring back a file that
+ * was deleted, and deleting one must actually free the disk now.
+ */
+export const documentAttachments = sqliteTable(
+  "document_attachments",
+  {
+    id: text("id").primaryKey(),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    /** what the person called it — only ever used in the download header, never on disk */
+    name: text("name").notNull(),
+    size: integer("size").notNull(),
+    addedBy: text("added_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [index("document_attachments_document_idx").on(table.documentId, table.createdAt)],
+);
+
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
 export type DocumentSnapshot = typeof documentSnapshots.$inferSelect;
+export type DocumentAttachment = typeof documentAttachments.$inferSelect;
