@@ -4,9 +4,11 @@ import {
   downloadUrl,
   formatBytes,
   listAttachments,
+  removeLinksTo,
   uploadAttachment,
   type Attachment,
 } from "../attachments";
+import { TEXT_KEY } from "@shared/ydoc";
 import type { SocketProvider } from "../yjs/socketProvider";
 
 /**
@@ -93,6 +95,7 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, onClos
     setError(null);
     try {
       await deleteAttachment(documentId, id);
+      if (provider) removeLinksTo(provider.doc.getText(TEXT_KEY), downloadUrl(documentId, id));
       setAttachments((was) => was?.filter((entry) => entry.id !== id) ?? null);
     }
     catch (cause) {

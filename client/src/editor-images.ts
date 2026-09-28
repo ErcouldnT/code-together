@@ -1,5 +1,6 @@
 import { Delta, type default as Quill } from "quill";
 import * as Y from "yjs";
+import { AttachmentError, downloadUrl, formatBytes, uploadAttachment } from "./attachments";
 import { upload, UploadError } from "./uploads";
 
 /**
@@ -33,6 +34,11 @@ export interface Inserter {
   insert: (files: File[]) => Promise<void>;
   /** Open a file picker and insert whatever comes back. */
   choose: () => void;
+  /**
+   * Any other file: attach it to the document and put a download link where
+   * it was dropped. `at` is the drop point; the caret when there is none.
+   */
+  attach: (files: File[], at?: number) => Promise<void>;
 }
 
 export interface InserterOptions {
@@ -41,9 +47,14 @@ export interface InserterOptions {
   text: Y.Text;
   onBusy: (uploading: number) => void;
   onError: (message: string | null) => void;
+  documentId: string;
+  /** read when a file is attached, so a rename after setup still counts */
+  addedBy: () => string;
 }
 
-export function createInserter({ quill, doc, text, onBusy, onError }: InserterOptions): Inserter {
+export function createInserter(
+  { quill, doc, text, onBusy, onError, documentId, addedBy }: InserterOptions,
+): Inserter {
   let uploading = 0;
 
   async function insert(files: File[]): Promise<void> {
@@ -101,7 +112,50 @@ export function createInserter({ quill, doc, text, onBusy, onError }: InserterOp
     input.click();
   }
 
-  return { insert, choose };
+  /*
+   * The link is ordinary linked text, not a custom embed: it survives the
+   * Markdown and HTML exports, other clients need no new blot to show it, and
+   * the file itself stays in the attachments list either way. Deleting the
+   * file there leaves this text behind pointing at nothing, which is honest —
+   * the reader sees it was there — and the text is theirs to remove.
+   */
+  async function attach(files: File[], at?: number): Promise<void> {
+    if (files.length === 0) return;
+    onError(null);
+    let anchor = Y.createRelativePositionFromTypeIndex(
+      text,
+      at ?? quill.getSelection()?.index ?? text.length,
+    );
+
+    for (const file of files) {
+      uploading += 1;
+      onBusy(uploading);
+      try {
+        const saved = await uploadAttachment(documentId, file, addedBy(), () => {});
+        const index = Y.createAbsolutePositionFromRelativePosition(anchor, doc)?.index ?? text.length;
+        const label = `📎 ${saved.name} (${formatBytes(saved.size)})`;
+        doc.transact(() => {
+          text.insert(index, label, { link: downloadUrl(documentId, saved.id) });
+          // Explicitly unlinked: a Y.Text insert without attributes takes on
+          // the formatting before it, so a bare " " would join the link and
+          // typing after it would extend it.
+          text.insert(index + label.length, " ", { link: null });
+        });
+        const end = index + label.length + 1;
+        quill.setSelection(end, 0);
+        anchor = Y.createRelativePositionFromTypeIndex(text, end);
+      }
+      catch (error) {
+        onError(error instanceof AttachmentError ? error.message : `Could not attach “${file.name}”.`);
+      }
+      finally {
+        uploading -= 1;
+        onBusy(uploading);
+      }
+    }
+  }
+
+  return { insert, choose, attach };
 }
 
 /**

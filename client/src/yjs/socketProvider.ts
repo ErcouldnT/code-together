@@ -70,6 +70,10 @@ export class SocketProvider {
     this.#events.onStatus?.(status);
   }
 
+  get documentId(): string {
+    return this.#documentId;
+  }
+
   /** The socket underneath, for room events that are not the document itself. */
   get socket(): AppSocket {
     return this.#socket;

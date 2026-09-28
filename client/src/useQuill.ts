@@ -108,6 +108,8 @@ export function useQuill(documentId: string | undefined): EditorState {
    * effect below fills it in once the provider has arrived.
    */
   const inserter = useRef<Inserter | null>(null);
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
 
   const containerRef = useCallback((wrapper: HTMLDivElement | null) => {
     if (!wrapper) return;
@@ -139,6 +141,24 @@ export function useQuill(documentId: string | undefined): EditorState {
     // then. Typing before then would not be lost — Yjs merges it — but writing
     // into a document that is about to fill in around you reads as a bug.
     instance.disable();
+    /*
+     * The uploader only passes on files whose type is in `mimetypes`, and
+     * silently drops the rest. Its `upload` is the single point both a drop and
+     * a pasted file reach, with the drop position already worked out, so the
+     * other files are split off there and attached instead of being lost.
+     */
+    const uploader = instance.getModule("uploader") as {
+      upload: (range: { index: number } | null, files: FileList | File[]) => void;
+    };
+    const uploadImages = uploader.upload.bind(uploader);
+    uploader.upload = (range, files) => {
+      const all = Array.from(files);
+      const isImage = (file: File) => IMAGE_MIME_TYPES.includes(file.type);
+      uploadImages(range, all.filter(isImage));
+      const others = all.filter((file) => !isImage(file));
+      if (others.length > 0) void inserter.current?.attach(others, range?.index);
+    };
+
     setQuill(instance);
     setToolbar((instance.getModule("toolbar") as { container?: HTMLElement } | undefined)?.container ?? null);
     setEditorArea(instance.container);
@@ -200,6 +220,8 @@ export function useQuill(documentId: string | undefined): EditorState {
       text,
       onBusy: setUploading,
       onError: setProblem,
+      documentId: provider.documentId,
+      addedBy: () => identityRef.current.name,
     });
     inserter.current = images;
     catchPastedDataUrls(quill, images);

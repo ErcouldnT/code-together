@@ -11,6 +11,8 @@ export interface Attachment {
   createdAt: number;
 }
 
+import type * as Y from "yjs";
+
 export class AttachmentError extends Error {}
 
 const base = (documentId: string) => `/api/documents/${encodeURIComponent(documentId)}/attachments`;
@@ -58,6 +60,37 @@ export async function deleteAttachment(documentId: string, attachmentId: string)
   const response = await fetch(`${base(documentId)}/${attachmentId}`, { method: "DELETE" });
   // 404 means somebody else got there first, which is the outcome asked for.
   if (!response.ok && response.status !== 404) throw new AttachmentError("Could not delete that file.");
+}
+
+/**
+ * Take every link to a deleted attachment out of the text, along with the
+ * space inserted after it. Done as an ordinary edit, so everyone in the room
+ * receives it like any other change. Returns how many links were removed.
+ */
+export function removeLinksTo(text: Y.Text, url: string): number {
+  const ranges: Array<[number, number]> = [];
+  let index = 0;
+  for (const op of text.toDelta() as Array<{ insert: unknown; attributes?: { link?: unknown } }>) {
+    const length = typeof op.insert === "string" ? op.insert.length : 1;
+    if (op.attributes?.link === url) {
+      const previous = ranges.at(-1);
+      // adjacent runs with different formatting are one link
+      if (previous && previous[0] + previous[1] === index) previous[1] += length;
+      else ranges.push([index, length]);
+    }
+    index += length;
+  }
+  const whole = text.toString();
+  const run = () => {
+    // from the end, so earlier indices stay valid
+    for (const [start, length] of ranges.reverse()) {
+      const trailingSpace = whole[start + length] === " " ? 1 : 0;
+      text.delete(start, length + trailingSpace);
+    }
+  };
+  if (text.doc) text.doc.transact(run);
+  else run();
+  return ranges.length;
 }
 
 export function formatBytes(bytes: number): string {
