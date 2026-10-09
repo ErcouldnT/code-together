@@ -15,6 +15,7 @@ import {
 } from "../shared/access.js";
 import type { LegacyDocumentData } from "../shared/events.js";
 import { META_KEY } from "../shared/ydoc.js";
+import { isAdminCookie } from "./admin-session.js";
 import { db } from "./db/index.js";
 import { documents } from "./db/schema.js";
 import { isProduction } from "./env.js";
@@ -85,6 +86,9 @@ function unlocked(documentId: string, passwordHash: string, cookieHeader: string
 /**
  * What the holder of this `Cookie` header may do to a document.
  *
+ * The admin, signed in, may do anything to any document that has not
+ * expired.
+ *
  * A document that does not exist yet is open: visiting an address is still
  * how a public room gets made, exactly as before passwords existed.
  */
@@ -102,7 +106,9 @@ export function accessFor(documentId: string, cookieHeader: string | undefined):
   }
   if (!row?.passwordHash || !row.protect) return { protect: null, read: true, write: true, expiresAt };
 
-  const known = unlocked(documentId, row.passwordHash, cookieHeader);
+  // The admin opens everything; a password keeps visitors out, not the
+  // person who runs the server and could read the database anyway.
+  const known = isAdminCookie(cookieHeader) || unlocked(documentId, row.passwordHash, cookieHeader);
   return {
     protect: row.protect,
     read: row.protect === "edit" || known,

@@ -7,8 +7,8 @@ import { formatBytes } from "./AdminPage";
  * Every document on the server, each a link that opens it in a new tab.
  *
  * Searched as you type, a moment after you stop, so a fast typist does not
- * send a request per letter. A document with a password still asks for it:
- * signing in here is not a key to every document.
+ * send a request per letter. A document with a password opens without it:
+ * the admin's cookie is a key to every document.
  */
 
 const when = dateTimeFormat({ dateStyle: "medium", timeStyle: "short" });

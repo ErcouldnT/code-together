@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import * as Y from "yjs";
 import type { CleanupPreview } from "../shared/admin.js";
 import { META_KEY, TEXT_KEY } from "../shared/ydoc.js";
-import { cleanupDatabase, connectClient, useTemporaryDatabase, type TestClient } from "./helpers.ts";
+import { adminCookieOf, cleanupDatabase, connectClient, useTemporaryDatabase, type TestClient } from "./helpers.ts";
 
 /**
  * Finding and deleting empty and abandoned documents — and, as much as
@@ -77,7 +77,7 @@ describe("cleanup", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ token: "sweep" }),
     });
-    cookie = (login.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+    cookie = adminCookieOf(login);
 
     make("blank");
     make("blank-new", { ageMs: 5 * 60 * 1000 });

@@ -1,10 +1,10 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { count } from "drizzle-orm";
 import express, { type NextFunction, type Request, type Response, type Router } from "express";
 import rateLimit from "express-rate-limit";
 import { ABANDONED_CHOICES, DIRECTORY_SORTS, type AdminOverview, type CleanupPreview, type LimitsUpdate } from "../shared/admin.js";
+import { ADMIN_COOKIE, adminSignature, isAdminCookie, same } from "./admin-session.js";
 import { deleteDocuments, findAbandoned, findEmpty, preview } from "./cleanup.js";
 import { db } from "./db/index.js";
 import { documents, expiredDocuments } from "./db/schema.js";
@@ -21,36 +21,15 @@ import { storageUsage } from "./storage.js";
  * Signing in sets an HttpOnly cookie holding an HMAC of a fixed label keyed
  * by the token — the same trick as document passwords: nothing to store,
  * nothing to forge without the token, and every session ends the moment the
- * token is changed. With no token configured none of this exists: every
+ * token is changed. The same cookie opens every document, password or not
+ * (see admin-session.ts). With no token configured none of this exists: every
  * route below answers 404, exactly as an unknown path would.
  */
 
-const COOKIE = "ct_admin";
 const SESSION_S = 12 * 60 * 60;
 
-function sign(token: string): string {
-  return createHmac("sha256", token).update("admin-session").digest("base64url");
-}
-
-/** Constant-time, and blind to length: both sides are hashed first. */
-function same(a: string, b: string): boolean {
-  const x = createHmac("sha256", "compare").update(a).digest();
-  const y = createHmac("sha256", "compare").update(b).digest();
-  return timingSafeEqual(x, y);
-}
-
-function readCookie(header: string | undefined, name: string): string | null {
-  for (const part of header?.split(";") ?? []) {
-    const at = part.indexOf("=");
-    if (at !== -1 && part.slice(0, at).trim() === name) return part.slice(at + 1).trim();
-  }
-  return null;
-}
-
 export function isAdmin(req: Request): boolean {
-  if (!env.adminToken) return false;
-  const presented = readCookie(req.headers.cookie, COOKIE);
-  return presented !== null && same(presented, sign(env.adminToken));
+  return isAdminCookie(req.headers.cookie);
 }
 
 /** The whole admin surface vanishes without a token. */
@@ -106,18 +85,24 @@ export function adminRoutes(): Router {
       res.status(403).json({ error: "wrong-token" });
       return;
     }
-    res.cookie(COOKIE, sign(env.adminToken), {
+    // The old cookie, scoped to the admin API alone, would sit beside the new
+    // one and outlive a sign-out.
+    res.clearCookie(ADMIN_COOKIE, { path: "/api/admin" });
+    // Lax rather than strict: a document opened from the admin screen in a new
+    // tab is a top-level navigation, and strict would leave the cookie behind.
+    res.cookie(ADMIN_COOKIE, adminSignature(env.adminToken), {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax",
       secure: isProduction,
-      path: "/api/admin",
+      path: "/",
       maxAge: SESSION_S * 1000,
     });
     res.sendStatus(204);
   });
 
   router.post("/api/admin/logout", (_req, res) => {
-    res.clearCookie(COOKIE, { path: "/api/admin" });
+    res.clearCookie(ADMIN_COOKIE, { path: "/" });
+    res.clearCookie(ADMIN_COOKIE, { path: "/api/admin" });
     res.sendStatus(204);
   });
 

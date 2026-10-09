@@ -123,10 +123,16 @@ export interface TestClient {
 }
 
 /** A connected, fully synced participant. */
-export async function connectClient(url: string, room: string): Promise<TestClient> {
+export async function connectClient(
+  url: string,
+  room: string,
+  headers?: Record<string, string>,
+): Promise<TestClient> {
   const socket: Socket<ServerToClientEvents, ClientToServerEvents> = connectSocket(url, {
     transports: ["websocket"],
     forceNew: true,
+    // as a proxy, or a cookie, would have them
+    extraHeaders: headers,
   });
   const rejections: string[] = [];
 
@@ -189,4 +195,10 @@ export function settle(ms = 150): Promise<void> {
 
 export function cleanupDatabase(): void {
   if (dbDir) rmSync(dbDir, { recursive: true, force: true });
+}
+
+/** The admin cookie a sign-in sets — not the one it clears beside it. */
+export function adminCookieOf(response: Response): string {
+  const set = response.headers.getSetCookie().find((line) => /^ct_admin=[^;]/.test(line));
+  return set?.split(";")[0] ?? "";
 }

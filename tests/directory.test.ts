@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import { join as joinPath } from "node:path";
 import { after, before, describe, it } from "node:test";
 import type { DirectoryPage } from "../shared/admin.js";
-import { cleanupDatabase, connectClient, useTemporaryDatabase, type TestClient } from "./helpers.ts";
+import { adminCookieOf, cleanupDatabase, connectClient, useTemporaryDatabase, type TestClient } from "./helpers.ts";
 
 /**
  * The admin screen's list of every document: searching, sorting, paging,
@@ -63,7 +63,7 @@ describe("document directory", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ token: "list" }),
     });
-    cookie = (login.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+    cookie = adminCookieOf(login);
     open.push(await connectClient(base, "gamma"));
   });
 

@@ -118,8 +118,10 @@ Under the status sits a list of **every document**, newest change first or
 sorted by when it was made or by size, searchable by title or address and
 narrowed to the ones open right now if you like. Each links to the document in
 a new tab, with who is in it, whether it has a password and when it deletes
-itself. Signing in here is not a key to every document: one with a password
-still asks for it.
+itself. Signed in, the admin opens every document, password or not: the
+admin cookie is sent with every request to the site, and the access check
+lets it through as it would the password's own. A visitor without it is
+asked as before.
 
 The screen also clears out documents nobody will come back to. **Empty**
 ones — no text, title, attachment or password, at least an hour old — are
@@ -156,6 +158,7 @@ src/                     Express + Socket.io server
   storage.ts             how much the stored files take up, for the quotas
   cleanup.ts             finding and deleting empty and abandoned documents
   directory.ts           every document, a page at a time, for the admin screen
+  admin-session.ts       the admin's cookie, which also opens every document
   documents.ts           load and save a room as a Yjs document
   export.ts              one delta, two file formats
   snapshots.ts           version history: periodic states, and restoring one

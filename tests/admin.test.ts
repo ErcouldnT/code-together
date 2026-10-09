@@ -3,8 +3,9 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join as joinPath } from "node:path";
 import { after, before, describe, it } from "node:test";
+import type { AccessInfo } from "../shared/access.js";
 import type { AdminOverview } from "../shared/admin.js";
-import { cleanupDatabase, connectClient, settle, useTemporaryDatabase } from "./helpers.ts";
+import { adminCookieOf, cleanupDatabase, connectClient, settle, useTemporaryDatabase } from "./helpers.ts";
 
 /**
  * The admin screen's API: signing in, reading the overview, and changing
@@ -71,16 +72,42 @@ describe("admin", () => {
   it("signs in with the token and shows the overview", async () => {
     const response = await login("correct horse battery staple");
     assert.equal(response.status, 204);
-    const setCookie = response.headers.get("set-cookie") ?? "";
+    const setCookie = response.headers.getSetCookie().find((line) => /^ct_admin=[^;]/.test(line)) ?? "";
     assert.match(setCookie, /HttpOnly/i);
-    assert.match(setCookie, /Path=\/api\/admin/i);
-    cookie = setCookie.split(";")[0] ?? "";
+    // site-wide, because it is also what opens every document
+    assert.match(setCookie, /Path=\/;/i);
+    assert.match(setCookie, /SameSite=Lax/i);
+    cookie = adminCookieOf(response);
 
     const overview = (await (await fetch(`${base}/api/admin/overview`, { headers: { cookie } })).json()) as AdminOverview;
     assert.equal(overview.limits.requestsPerMinute, 300);
     assert.deepEqual(overview.limits, overview.defaults);
     assert.equal(typeof overview.stats.documents, "number");
     assert.equal(typeof overview.stats.databaseBytes, "number");
+  });
+
+  it("opens every document, password or not, and only for the admin", async () => {
+    const made = await fetch(`${base}/api/documents`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Locked away", password: "hunter22", protect: "view" }),
+    });
+    const { id } = (await made.json()) as { id: string };
+    const access = async (headers: Record<string, string>) =>
+      (await (await fetch(`${base}/api/documents/${id}/access`, { headers })).json()) as AccessInfo;
+
+    assert.equal((await access({})).read, false);
+    assert.equal((await access({ cookie: "ct_admin=forged" })).read, false);
+    const admin = await access({ cookie });
+    assert.equal(admin.read, true);
+    assert.equal(admin.write, true);
+
+    // and over the socket, which is where reading and writing happen
+    const inside = await connectClient(base, id, { cookie });
+    inside.text.insert(0, "x");
+    await settle(300);
+    assert.deepEqual(inside.rejections, []);
+    inside.destroy();
   });
 
   it("changes limits all at once or not at all, and puts one back on null", async () => {
