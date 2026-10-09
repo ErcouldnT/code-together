@@ -205,7 +205,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   background-color: var(--codeblock-bg);
-  padding: 0.6rem 0.8rem;
+  /* the language picker gets a strip of its own at the top, so a long line
+     never runs under it — on a phone every line is a long line */
+  padding: 1.9rem 0.8rem 0.6rem;
   color: var(--codeblock-text);
   font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   overflow-x: auto;
@@ -213,6 +215,8 @@ body {
 
 /* The language picker, top right of the block. Quiet until it is wanted. */
 .container .ql-snow .ql-editor .ql-code-block-container select.ql-ui {
+  top: 0.3rem;
+  right: 0.4rem;
   border: 1px solid transparent;
   border-radius: 4px;
   background-color: transparent;
