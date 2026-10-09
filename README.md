@@ -94,10 +94,18 @@ browser joins as "Sessiz Şahin", a Russian one as "Тихий Сокол".
 
 ## Administration
 
-Set `ADMIN_TOKEN` and `/admin` becomes an admin screen; leave it unset and
-the screen, and every route behind it, does not exist. Signing in with the
-token sets an HttpOnly cookie that is an HMAC keyed by the token itself, so
-changing the token signs everybody out.
+Set `ADMIN_EMAIL`, `ADMIN_PASSWORD` and `BETTER_AUTH_SECRET` and `/admin`
+becomes an admin screen; leave the email and password unset and the screen,
+and every route behind it, does not exist. Sign-in is
+[Better Auth](https://www.better-auth.com) over the app's own Drizzle
+database: the admin account is made from the environment at boot, nobody
+can sign up, and changing `ADMIN_PASSWORD` resets the password and ends the
+sessions signed in with the old one. A session lasts twelve hours, renewed
+while the screen is in use, and the server checks its age itself. Sign-in
+attempts are limited to ten a minute per address — the address Express
+worked out behind the proxy, not one the visitor can write into a header.
+Signing in some other way later (an email link, say) is a Better Auth
+plugin on the same tables.
 
 The screen shows how the server is doing — documents, who has what open,
 how much the pictures, attachments and database take up — and every limit
@@ -114,9 +122,10 @@ the moment it is enforced. Changed limits are kept in the database and
 outrank the environment, which only says where each one starts; "Use
 default" hands one back to the environment.
 
-Signed in, the admin opens **every document**, password or not: the admin
-cookie is sent with every request to the site, and the access check lets it
-through as it would the password's own. A visitor without it is asked as
+Signed in, the admin opens **every document**, password or not: the session
+cookie is sent with every request to the site, the socket handshake
+included, and the access check lets it through as it would the password's
+own. A visitor without it is asked as
 before.
 
 **Statistics** show where documents are made and changed from — by country
@@ -154,6 +163,7 @@ cleanup, as it did before the screen existed.
 | --------- | ---------- |
 | Server    | Node 22, TypeScript, Express 5, Socket.io 4, Yjs 13 |
 | Database  | SQLite via Drizzle ORM (`better-sqlite3`) |
+| Auth      | Better Auth (Drizzle adapter, admin plugin) |
 | Client    | Vite 8, React 19, TypeScript, Quill 2, y-quill, React Router 7 |
 | Delivery  | Docker (multi-stage), Docker Compose, Coolify |
 
@@ -168,14 +178,14 @@ src/                     Express + Socket.io server
   db/                    Drizzle schema and client
   access.ts              named documents, passwords, and who may read or write
   expiry.ts              documents that delete themselves, and staying deleted
-  admin.ts               the admin screen's API, behind ADMIN_TOKEN
+  admin.ts               the admin screen's API, for a signed-in admin
   settings.ts            the limits as they stand, changeable without a restart
   storage.ts             how much the stored files take up, for the quotas
   cleanup.ts             finding and deleting empty and abandoned documents
   directory.ts           every document, filtered a page at a time, and the statistics
   activity.ts            where documents are made and changed from
   geo.ts                 a request's address and country
-  admin-session.ts       the admin's cookie, which also opens every document
+  auth.ts                Better Auth: the admin account, sessions, who is an admin
   documents.ts           load and save a room as a Yjs document
   export.ts              one delta, two file formats
   snapshots.ts           version history: periodic states, and restoring one
@@ -265,7 +275,9 @@ deleting a picture between the upload finishing and the document being saved.
 | `MAX_ATTACHMENT_BYTES` | no | `1073741824` | Largest file that can be attached to a document (1 GB). Streamed to disk, not held in memory. |
 | `SNAPSHOT_EVERY_MS` | no | `600000` | How often a changing document earns a point in its history. |
 | `SNAPSHOT_KEEP` | no | `20` | Points kept per document; older ones are dropped. |
-| `ADMIN_TOKEN` | no | — | Password for `/admin`. Unset, the admin screen and its routes do not exist. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | no | — | The admin's sign-in for `/admin`, made at boot; the password at least 12 characters. Unset, the admin screen and its routes do not exist. |
+| `BETTER_AUTH_SECRET` | with an admin | — | Signs sessions. `openssl rand -base64 32`; changing it signs everybody out. |
+| `BETTER_AUTH_URL` | with an admin | `https://together.erkut.dev` | The public address. Sign-ins from any other origin are refused. |
 | `REQUESTS_PER_MINUTE` | no | `300` | HTTP requests one address may make per minute. |
 | `ATTACHMENT_QUOTA_BYTES` | no | `0` | Most one document's attachments may add up to. `0` is no limit. |
 | `STORAGE_QUOTA_BYTES` | no | `0` | Most every stored file together may take, pictures and attachments both. `0` is no limit. |

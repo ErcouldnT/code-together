@@ -60,10 +60,20 @@ export const env = {
   snapshotKeep: int(process.env.SNAPSHOT_KEEP, 20),
 
   /**
-   * The password for /admin. Unset — the default — and the admin screen does
-   * not exist: every admin route answers 404, so there is nothing to guess at.
+   * The admin's sign-in. Both unset — the default — and the admin screen
+   * does not exist: every admin route answers 404, so there is nothing to
+   * guess at. Set, the account is made (or its password brought into line)
+   * at boot, so these two are always the way in.
    */
-  adminToken: process.env.ADMIN_TOKEN ?? "",
+  adminEmail: (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase(),
+  adminPassword: process.env.ADMIN_PASSWORD ?? "",
+  /**
+   * Better Auth's signing key for sessions — 32 random bytes or more, e.g.
+   * `openssl rand -base64 32`. Change it and every session ends.
+   */
+  authSecret: process.env.BETTER_AUTH_SECRET ?? "",
+  /** The site's public address, which Better Auth checks a sign-in's Origin against. */
+  authUrl: process.env.BETTER_AUTH_URL ?? "",
   /** HTTP requests one address may make per minute, outside the socket. */
   requestsPerMinute: int(process.env.REQUESTS_PER_MINUTE, 300),
   /**

@@ -1,10 +1,12 @@
 import { createServer } from "node:http";
 import { resolve } from "node:path";
+import { toNodeHandler } from "better-auth/node";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import { pinoHttp } from "pino-http";
 import { accessRoutes, allowed } from "./access.js";
 import { adminRoutes } from "./admin.js";
+import { auth, clientIpHeader, ensureAdmin, resolveAdmin } from "./auth.js";
 import { attachmentRoutes } from "./attachments.js";
 import { closeDatabase, runMigrations } from "./db/index.js";
 import { automaticCleanup } from "./cleanup.js";
@@ -20,6 +22,7 @@ import { noteStored, storageRoom } from "./storage.js";
 import { mimeForStoredName, pathForStoredName, storeUpload, sweepUploads } from "./uploads.js";
 
 runMigrations();
+await ensureAdmin();
 
 const clientDist = resolve(import.meta.dirname, "../../client/dist");
 
@@ -134,10 +137,19 @@ app.get("/uploads/:name", (req, res) => {
   });
 });
 
+// Signing in and out, and everything else Better Auth answers. Ahead of any
+// body parser: the handler reads the body itself.
+app.all("/api/auth/{*any}", clientIpHeader, toNodeHandler(auth));
+
+// Whether this request is the admin's, once, for every API route below. Not
+// for pages and assets: nothing there asks, and it would cost the admin a
+// session lookup per file.
+app.use("/api", resolveAdmin);
+
 // Making a named document, and unlocking one with a password.
 app.use(accessRoutes());
 
-// The admin screen's API — absent unless ADMIN_TOKEN is set.
+// The admin screen's API — absent unless ADMIN_EMAIL and ADMIN_PASSWORD are set.
 app.use(adminRoutes());
 
 // Documents that delete themselves. The events reach the socket server

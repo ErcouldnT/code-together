@@ -12,6 +12,7 @@ import type {
   UpdateRejection,
 } from "../shared/events.js";
 import { accessFor } from "./access.js";
+import { isAdminRequest } from "./auth.js";
 import { env } from "./env.js";
 import { expireDocument, isOverdue, isTombstoned, type ExpiryEvents } from "./expiry.js";
 import { limits } from "./settings.js";
@@ -31,6 +32,8 @@ interface SocketData {
    * closed tab leaves a ghost sitting in the document forever.
    */
   awarenessClients: Set<number>;
+  /** a signed-in admin, who may open every document — decided at the handshake */
+  admin: boolean;
   /** the address and country this socket connected from */
   origin: Origin;
   /** fixed-window counter behind the `updateBurst` limit */
@@ -112,6 +115,15 @@ export function attachSockets(httpServer: HttpServer): IoServer {
     maxHttpBufferSize: env.maxUpdateBytes + 1024,
   });
 
+  // The session lookup is asynchronous and the join is not, so it happens
+  // once, here, for the life of the connection — as the cookies do.
+  io.use((socket, next) => {
+    void isAdminRequest(socket.handshake.headers).then((admin) => {
+      socket.data.admin = admin;
+      next();
+    });
+  });
+
   io.on("connection", (socket) => {
     socket.data.awarenessClients = new Set();
     socket.data.canWrite = false;
@@ -150,7 +162,7 @@ export function attachSockets(httpServer: HttpServer): IoServer {
         return;
       }
 
-      const access = accessFor(documentId, socket.handshake.headers.cookie);
+      const access = accessFor(documentId, socket.handshake.headers.cookie, socket.data.admin);
       if (!access.read) {
         socket.emit("join-error", "locked");
         return;

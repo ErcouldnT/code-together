@@ -197,8 +197,40 @@ export function cleanupDatabase(): void {
   if (dbDir) rmSync(dbDir, { recursive: true, force: true });
 }
 
-/** The admin cookie a sign-in sets — not the one it clears beside it. */
-export function adminCookieOf(response: Response): string {
-  const set = response.headers.getSetCookie().find((line) => /^ct_admin=[^;]/.test(line));
-  return set?.split(";")[0] ?? "";
+export const ADMIN_EMAIL = "admin@example.test";
+export const ADMIN_PASSWORD = "correct horse battery staple";
+
+/** The environment an admin needs; call before the server modules are imported. */
+export function useAdmin(): void {
+  process.env.ADMIN_EMAIL = ADMIN_EMAIL;
+  process.env.ADMIN_PASSWORD = ADMIN_PASSWORD;
+  process.env.BETTER_AUTH_SECRET = "test-secret-test-secret-test-secret-0123";
+}
+
+/**
+ * Better Auth on a test app, as server.ts mounts it, with the admin account
+ * made. Mounted first, ahead of the routes that ask who is signed in.
+ */
+export async function mountAuth(app: import("express").Express): Promise<void> {
+  const { auth, clientIpHeader, ensureAdmin, resolveAdmin } = await import("../src/auth.js");
+  const { toNodeHandler } = await import("better-auth/node");
+  await ensureAdmin();
+  app.all("/api/auth/{*any}", clientIpHeader, toNodeHandler(auth));
+  app.use("/api", resolveAdmin);
+}
+
+/** The session cookie a sign-in sets, ready for a `cookie` header. */
+export function sessionCookieOf(response: Response): string {
+  return response.headers.getSetCookie()
+    .filter((line) => /session_token=[^;]/.test(line))
+    .map((line) => line.split(";")[0])
+    .join("; ");
+}
+
+export async function signIn(base: string, email = ADMIN_EMAIL, password = ADMIN_PASSWORD): Promise<Response> {
+  return fetch(`${base}/api/auth/sign-in/email`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: base },
+    body: JSON.stringify({ email, password }),
+  });
 }

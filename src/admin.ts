@@ -2,44 +2,34 @@ import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { count } from "drizzle-orm";
 import express, { type NextFunction, type Request, type Response, type Router } from "express";
-import rateLimit from "express-rate-limit";
 import { ABANDONED_CHOICES, DIRECTORY_PROTECTIONS, DIRECTORY_SORTS, type AdminOverview, type CleanupPreview, type LimitsUpdate } from "../shared/admin.js";
-import { ADMIN_COOKIE, adminSignature, isAdminCookie, same } from "./admin-session.js";
+import { adminEnabled, isAdminRequest } from "./auth.js";
 import { deleteDocuments, findAbandoned, findEmpty, preview } from "./cleanup.js";
 import { db } from "./db/index.js";
 import { documents, expiredDocuments } from "./db/schema.js";
 import { adminStats, documentDetail, listDocuments } from "./directory.js";
-import { env, isProduction } from "./env.js";
+import { env } from "./env.js";
 import { countExpiring } from "./expiry.js";
 import { ROOM_ID, roomStats } from "./rooms.js";
 import { defaultLimits, limits, updateLimits } from "./settings.js";
 import { storageUsage } from "./storage.js";
 
 /**
- * The admin screen's routes, behind `ADMIN_TOKEN`.
- *
- * Signing in sets an HttpOnly cookie holding an HMAC of a fixed label keyed
- * by the token — the same trick as document passwords: nothing to store,
- * nothing to forge without the token, and every session ends the moment the
- * token is changed. The same cookie opens every document, password or not
- * (see admin-session.ts). With no token configured none of this exists: every
- * route below answers 404, exactly as an unknown path would.
+ * The admin screen's routes, for an admin signed in through Better Auth
+ * (see auth.ts). With no admin configured none of this exists: every route
+ * below answers 404, exactly as an unknown path would.
  */
 
-const SESSION_S = 12 * 60 * 60;
-
-export function isAdmin(req: Request): boolean {
-  return isAdminCookie(req.headers.cookie);
-}
-
-/** The whole admin surface vanishes without a token. */
+/** The whole admin surface vanishes without an admin. */
 function enabled(_req: Request, res: Response, next: NextFunction): void {
-  if (!env.adminToken) res.sendStatus(404);
+  if (!adminEnabled) res.sendStatus(404);
   else next();
 }
 
-function signedIn(req: Request, res: Response, next: NextFunction): void {
-  if (!isAdmin(req)) res.status(401).json({ error: "not-signed-in" });
+async function signedIn(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // resolved once per request by `resolveAdmin` when the app mounts it
+  const admin = typeof res.locals.admin === "boolean" ? res.locals.admin : await isAdminRequest(req.headers);
+  if (!admin) res.status(401).json({ error: "not-signed-in" });
   else next();
 }
 
@@ -74,37 +64,6 @@ export function overview(): AdminOverview {
 export function adminRoutes(): Router {
   const router = express.Router();
   router.use("/api/admin", enabled);
-
-  // Ten guesses a minute per address, whatever the limits are set to: this
-  // one is not on the admin screen, because the admin screen is behind it.
-  const guesses = rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false });
-
-  router.post("/api/admin/login", guesses, express.json({ limit: "1kb" }), (req, res) => {
-    const token = (req.body as { token?: unknown } | undefined)?.token;
-    if (typeof token !== "string" || !same(token, env.adminToken)) {
-      res.status(403).json({ error: "wrong-token" });
-      return;
-    }
-    // The old cookie, scoped to the admin API alone, would sit beside the new
-    // one and outlive a sign-out.
-    res.clearCookie(ADMIN_COOKIE, { path: "/api/admin" });
-    // Lax rather than strict: a document opened from the admin screen in a new
-    // tab is a top-level navigation, and strict would leave the cookie behind.
-    res.cookie(ADMIN_COOKIE, adminSignature(env.adminToken), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProduction,
-      path: "/",
-      maxAge: SESSION_S * 1000,
-    });
-    res.sendStatus(204);
-  });
-
-  router.post("/api/admin/logout", (_req, res) => {
-    res.clearCookie(ADMIN_COOKIE, { path: "/" });
-    res.clearCookie(ADMIN_COOKIE, { path: "/api/admin" });
-    res.sendStatus(204);
-  });
 
   router.get("/api/admin/overview", signedIn, (_req, res) => {
     res.set("cache-control", "no-store").json(overview());

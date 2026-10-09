@@ -23,10 +23,17 @@ services:
       # Version history: how often a point is kept, and how many per document.
       - SNAPSHOT_EVERY_MS=${SNAPSHOT_EVERY_MS:-600000}
       - SNAPSHOT_KEEP=${SNAPSHOT_KEEP:-20}
-      # The password for /admin. Leave it empty and the admin screen does not
-      # exist. Limits changed there are kept in the database and outrank the
-      # values below, which are only where each one starts.
-      - ADMIN_TOKEN=${ADMIN_TOKEN:-}
+      # The admin's sign-in for /admin, through Better Auth. Leave the email
+      # and password empty and the admin screen does not exist. The account is
+      # made at boot, and changing ADMIN_PASSWORD here resets it.
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      # Signs sessions: `openssl rand -base64 32`. Required with an admin.
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-}
+      # The public address; a placeholder until the real domain is set in Coolify.
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-https://together.erkut.dev}
+      # Limits changed on the admin screen are kept in the database and
+      # outrank the values below, which are only where each one starts.
       - REQUESTS_PER_MINUTE=${REQUESTS_PER_MINUTE:-300}
       # Totals in bytes; 0 is no limit.
       - ATTACHMENT_QUOTA_BYTES=${ATTACHMENT_QUOTA_BYTES:-0}

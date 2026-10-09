@@ -4,7 +4,17 @@ import type { AddressInfo } from "node:net";
 import { join as joinPath } from "node:path";
 import { after, before, describe, it } from "node:test";
 import type { AdminStats, DirectoryPage, DocumentDetail } from "../shared/admin.js";
-import { adminCookieOf, cleanupDatabase, connectClient, settle, useTemporaryDatabase, type TestClient } from "./helpers.ts";
+import {
+  cleanupDatabase,
+  connectClient,
+  mountAuth,
+  sessionCookieOf,
+  settle,
+  signIn,
+  useAdmin,
+  useTemporaryDatabase,
+  type TestClient,
+} from "./helpers.ts";
 
 /**
  * The admin screen's list of every document — searching, sorting, paging and
@@ -23,7 +33,7 @@ describe("document directory", () => {
   before(async () => {
     const dir = useTemporaryDatabase();
     process.env.UPLOAD_DIR = joinPath(dir, "..", "uploads-directory");
-    process.env.ADMIN_TOKEN = "list";
+    useAdmin();
     db = await import("../src/db/index.js");
     db.runMigrations();
     const { adminRoutes } = await import("../src/admin.js");
@@ -61,6 +71,7 @@ describe("document directory", () => {
     }
 
     const app = express();
+    await mountAuth(app);
     app.set("trust proxy", 1);
     app.use(adminRoutes());
     app.use(accessRoutes());
@@ -69,12 +80,7 @@ describe("document directory", () => {
     await new Promise<void>((resolve) => server.listen(0, resolve));
     base = `http://localhost:${(server.address() as AddressInfo).port}`;
 
-    const login = await fetch(`${base}/api/admin/login`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token: "list" }),
-    });
-    cookie = adminCookieOf(login);
+    cookie = sessionCookieOf(await signIn(base));
     open.push(await connectClient(base, "gamma"));
   });
 

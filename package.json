@@ -39,6 +39,7 @@
   },
   "homepage": "https://github.com/ErcouldnT/code-together#readme",
   "dependencies": {
+    "better-auth": "^1.7.7",
     "better-sqlite3": "^13.0.3",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",

@@ -7,7 +7,16 @@ import { eq } from "drizzle-orm";
 import * as Y from "yjs";
 import type { CleanupPreview } from "../shared/admin.js";
 import { META_KEY, TEXT_KEY } from "../shared/ydoc.js";
-import { adminCookieOf, cleanupDatabase, connectClient, useTemporaryDatabase, type TestClient } from "./helpers.ts";
+import {
+  cleanupDatabase,
+  connectClient,
+  mountAuth,
+  sessionCookieOf,
+  signIn,
+  useAdmin,
+  useTemporaryDatabase,
+  type TestClient,
+} from "./helpers.ts";
 
 /**
  * Finding and deleting empty and abandoned documents — and, as much as
@@ -56,7 +65,7 @@ describe("cleanup", () => {
   before(async () => {
     const dir = useTemporaryDatabase();
     process.env.UPLOAD_DIR = joinPath(dir, "..", "uploads-cleanup");
-    process.env.ADMIN_TOKEN = "sweep";
+    useAdmin();
     db = await import("../src/db/index.js");
     db.runMigrations();
     cleanup = await import("../src/cleanup.js");
@@ -66,18 +75,14 @@ describe("cleanup", () => {
     const express = (await import("express")).default;
 
     const app = express();
+    await mountAuth(app);
     app.use(adminRoutes());
     server = createServer(app);
     io = attachSockets(server);
     await new Promise<void>((resolve) => server.listen(0, resolve));
     base = `http://localhost:${(server.address() as AddressInfo).port}`;
 
-    const login = await fetch(`${base}/api/admin/login`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token: "sweep" }),
-    });
-    cookie = adminCookieOf(login);
+    cookie = sessionCookieOf(await signIn(base));
 
     make("blank");
     make("blank-new", { ageMs: 5 * 60 * 1000 });

@@ -11,6 +11,7 @@ import {
   type LimitSpec,
 } from "@shared/admin";
 import { language, t } from "../i18n";
+import { authClient } from "./auth";
 import CleanupCard from "./CleanupCard";
 import DirectoryCard, { type Preset } from "./DirectoryCard";
 import StatsCard from "./StatsCard";
@@ -104,6 +105,9 @@ export default function AdminPage() {
 
   const refresh = useCallback(async () => {
     try {
+      // Keeps a session in use from running out: Better Auth renews it, and
+      // its cookie, when asked for it this way.
+      await authClient.getSession().catch(() => null);
       setPhase(await load());
     }
     catch {
@@ -117,7 +121,7 @@ export default function AdminPage() {
   }, [refresh]);
 
   async function signOut() {
-    await fetch("/api/admin/logout", { method: "POST" });
+    await authClient.signOut();
     setPhase({ kind: "signed-out" });
   }
 
@@ -154,7 +158,8 @@ export default function AdminPage() {
 }
 
 function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
-  const [token, setToken] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -163,13 +168,11 @@ function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-      if (response.ok) onSignedIn();
-      else setError(response.status === 429 ? t("unlock.tooMany") : t("admin.wrong"));
+      const { error: failed } = await authClient.signIn.email({ email, password });
+      if (!failed) onSignedIn();
+      else if (failed.status === 429) setError(t("unlock.tooMany"));
+      else if (failed.status === 401 || failed.status === 403) setError(t("admin.wrong"));
+      else setError(t("common.noServer"));
     }
     catch {
       setError(t("common.noServer"));
@@ -182,23 +185,37 @@ function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
   return (
     <form className="admin-card admin-narrow dialog-form" onSubmit={(event) => void submit(event)}>
       <label className="dialog-field">
-        <span className="dialog-label">{t("admin.token")}</span>
+        <span className="dialog-label">{t("admin.email")}</span>
+        <input
+          className="dialog-input"
+          type="email"
+          autoComplete="username"
+          autoFocus
+          required
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            setError(null);
+          }}
+        />
+      </label>
+      <label className="dialog-field">
+        <span className="dialog-label">{t("admin.password")}</span>
         <input
           className="dialog-input"
           type="password"
           autoComplete="current-password"
-          autoFocus
           required
-          value={token}
+          value={password}
           onChange={(event) => {
-            setToken(event.target.value);
+            setPassword(event.target.value);
             setError(null);
           }}
         />
       </label>
       {error && <p className="dialog-error" role="alert">{error}</p>}
       <div className="dialog-actions">
-        <button type="submit" className="menu-button dialog-primary" disabled={busy || !token}>{t("admin.signIn")}</button>
+        <button type="submit" className="menu-button dialog-primary" disabled={busy || !email || !password}>{t("admin.signIn")}</button>
       </div>
     </form>
   );

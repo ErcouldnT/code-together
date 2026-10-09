@@ -5,7 +5,17 @@ import { join as joinPath } from "node:path";
 import { after, before, describe, it } from "node:test";
 import type { AccessInfo } from "../shared/access.js";
 import type { AdminOverview } from "../shared/admin.js";
-import { adminCookieOf, cleanupDatabase, connectClient, settle, useTemporaryDatabase } from "./helpers.ts";
+import {
+  ADMIN_EMAIL,
+  cleanupDatabase,
+  connectClient,
+  mountAuth,
+  sessionCookieOf,
+  settle,
+  signIn,
+  useAdmin,
+  useTemporaryDatabase,
+} from "./helpers.ts";
 
 /**
  * The admin screen's API: signing in, reading the overview, and changing
@@ -20,7 +30,7 @@ describe("admin", () => {
   before(async () => {
     const dir = useTemporaryDatabase();
     process.env.UPLOAD_DIR = joinPath(dir, "..", "uploads-admin");
-    process.env.ADMIN_TOKEN = "correct horse battery staple";
+    useAdmin();
     const { runMigrations } = await import("../src/db/index.js");
     runMigrations();
     const { adminRoutes } = await import("../src/admin.js");
@@ -32,6 +42,8 @@ describe("admin", () => {
     const express = (await import("express")).default;
 
     const app = express();
+    app.set("trust proxy", 1);
+    await mountAuth(app);
     app.use(adminRoutes());
     app.use(accessRoutes());
     app.use(attachmentRoutes(() => {}));
@@ -48,13 +60,6 @@ describe("admin", () => {
     cleanupDatabase();
   });
 
-  const login = (token: string) =>
-    fetch(`${base}/api/admin/login`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token }),
-    });
-
   let cookie = "";
   const put = (body: unknown) =>
     fetch(`${base}/api/admin/limits`, {
@@ -63,21 +68,28 @@ describe("admin", () => {
       body: JSON.stringify(body),
     });
 
-  it("refuses the wrong token and anyone not signed in", async () => {
-    assert.equal((await login("guess")).status, 403);
+  it("refuses a wrong password, anyone not signed in, and anyone signing up", async () => {
+    assert.equal((await signIn(base, ADMIN_EMAIL, "not the password at all")).status, 401);
+    assert.equal((await signIn(base, "someone@example.test", "not the password at all")).status, 401);
+    const signUp = await fetch(`${base}/api/auth/sign-up/email`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: base },
+      body: JSON.stringify({ email: "new@example.test", password: "a long enough password", name: "New" }),
+    });
+    assert.ok(signUp.status >= 400, "sign-up is closed");
     assert.equal((await fetch(`${base}/api/admin/overview`)).status, 401);
     assert.equal((await put({ requestsPerMinute: 50 })).status, 401);
   });
 
-  it("signs in with the token and shows the overview", async () => {
-    const response = await login("correct horse battery staple");
-    assert.equal(response.status, 204);
-    const setCookie = response.headers.getSetCookie().find((line) => /^ct_admin=[^;]/.test(line)) ?? "";
+  it("signs in with the admin's email and password and shows the overview", async () => {
+    const response = await signIn(base);
+    assert.equal(response.status, 200);
+    const setCookie = response.headers.getSetCookie().find((line) => /session_token=[^;]/.test(line)) ?? "";
     assert.match(setCookie, /HttpOnly/i);
     // site-wide, because it is also what opens every document
-    assert.match(setCookie, /Path=\/;/i);
+    assert.match(setCookie, /Path=\/(;|$)/i);
     assert.match(setCookie, /SameSite=Lax/i);
-    cookie = adminCookieOf(response);
+    cookie = sessionCookieOf(response);
 
     const overview = (await (await fetch(`${base}/api/admin/overview`, { headers: { cookie } })).json()) as AdminOverview;
     assert.equal(overview.limits.requestsPerMinute, 300);
@@ -97,7 +109,7 @@ describe("admin", () => {
       (await (await fetch(`${base}/api/documents/${id}/access`, { headers })).json()) as AccessInfo;
 
     assert.equal((await access({})).read, false);
-    assert.equal((await access({ cookie: "ct_admin=forged" })).read, false);
+    assert.equal((await access({ cookie: "better-auth.session_token=forged.value" })).read, false);
     const admin = await access({ cookie });
     assert.equal(admin.read, true);
     assert.equal(admin.write, true);
