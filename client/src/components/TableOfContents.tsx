@@ -65,8 +65,15 @@ export function useHeadings(quill: Quill | null): Heading[] {
   return headings;
 }
 
-/** Which heading the reader is in: the last one scrolled past the top. */
-function useCurrent(headings: Heading[]): number {
+/**
+ * Which heading the reader is in: the last one scrolled past the top.
+ *
+ * Except at the very end of the document, where the last few headings can
+ * never reach the top because there is no page left below them to scroll.
+ * There, the heading somebody just chose is the answer if it is on screen,
+ * and otherwise the last heading that is.
+ */
+function useCurrent(headings: Heading[], chosen: { current: Heading | null }): number {
   const [current, setCurrent] = useState(-1);
 
   useEffect(() => {
@@ -78,6 +85,21 @@ function useCurrent(headings: Heading[]): number {
       headings.forEach((heading, i) => {
         if (heading.node.getBoundingClientRect().top <= top) index = i;
       });
+      const atEnd = window.scrollY > 0
+        && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atEnd) {
+        const onScreen = (heading: Heading) => {
+          const box = heading.node.getBoundingClientRect();
+          return box.top >= top - 4 && box.bottom <= window.innerHeight;
+        };
+        const picked = chosen.current ? headings.indexOf(chosen.current) : -1;
+        if (picked >= 0 && onScreen(headings[picked]!)) index = picked;
+        else {
+          headings.forEach((heading, i) => {
+            if (i > index && onScreen(heading) && heading.node.getBoundingClientRect().top < window.innerHeight / 2) index = i;
+          });
+        }
+      }
       // Above the first heading the first one is still the place you are at.
       setCurrent(headings.length > 0 ? Math.max(0, index) : -1);
     };
@@ -92,7 +114,7 @@ function useCurrent(headings: Heading[]): number {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [headings]);
+  }, [headings, chosen]);
 
   return current;
 }
@@ -105,7 +127,8 @@ interface Props {
 }
 
 export default function TableOfContents({ headings, overlay, onClose }: Props) {
-  const current = useCurrent(headings);
+  const chosen = useRef<Heading | null>(null);
+  const current = useCurrent(headings, chosen);
   const list = useRef<HTMLElement>(null);
 
   // A drawer is a modal moment: Escape closes it, as it closes the menus.
@@ -124,8 +147,12 @@ export default function TableOfContents({ headings, overlay, onClose }: Props) {
   }, [current]);
 
   const jump = useCallback((heading: Heading) => {
+    chosen.current = heading;
     const top = heading.node.getBoundingClientRect().top + window.scrollY - coveredTop();
     window.scrollTo({ top, behavior: "smooth" });
+    // Already as far down as the page goes, nothing scrolls and nothing
+    // re-measures; ask for it, so the choice still shows.
+    window.requestAnimationFrame(() => window.dispatchEvent(new Event("scroll")));
     if (overlay) onClose();
   }, [overlay, onClose]);
 
