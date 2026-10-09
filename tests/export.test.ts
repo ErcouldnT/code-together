@@ -156,6 +156,16 @@ describe("Markdown export", () => {
     assert.equal(md, "```\nconst a = 1;\nconst b = 2;\n```\nafter\n");
   });
 
+  it("turns a divider into a rule between the lines around it", () => {
+    const ops = [
+      { insert: "above\n" },
+      { insert: { divider: true } },
+      { insert: "below\n" },
+    ];
+    assert.equal(toMarkdown(ops), "above\n---\nbelow\n");
+    assert.equal(toHtml(ops), "<p>above</p>\n<hr>\n<p>below</p>");
+  });
+
   it("writes a task list as GitHub writes one", () => {
     const md = toMarkdown([
       { insert: "done" },

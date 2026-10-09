@@ -310,6 +310,13 @@ body {
   font-weight: 700;
 }
 
+/* A rule, from --- typed or pasted. */
+.container .ql-editor hr {
+  margin: 1em 0;
+  border: none;
+  border-top: 2px solid var(--border);
+}
+
 /*
  * Task lists. Quill draws ☐ and ☑ as text, which come out at whatever size
  * and weight the font has them and are hard to hit on a phone. These are

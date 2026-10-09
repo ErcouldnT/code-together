@@ -27,6 +27,14 @@ A task is ticked by clicking its box, by anyone who can edit; the toolbar has
 a button for task lists too, and both exports keep the ticks — `- [x]` in
 Markdown, a checkbox in HTML.
 
+Inline marks work the same way, closing as you type the last character:
+`**bold**`, `*italic*` or `_italic_`, `` `code` ``, `~~struck~~`, and
+`[words](https://…)` for a link. `---` alone on a line, then Enter, draws a
+rule. Markdown *pasted* as plain text — a README out of a terminal, say —
+arrives as the document it describes rather than as a page of asterisks;
+a paste that already carries rich HTML, or one into a code block, is left as
+it is.
+
 Code blocks are coloured by [highlight.js](https://highlightjs.org). A block
 nobody has chosen a language for guesses one, and its picker says what it
 guessed — *Auto · Python*; picking another language from it fixes the choice
@@ -95,6 +103,7 @@ client/
   src/identity.ts        your name and cursor colour, kept in this browser
   src/i18n.ts            every word on the page, in English, Turkish and Russian
   src/markdown.ts        Markdown shortcuts typed into the text
+  src/markdown-paste.ts  Markdown pasted as text, turned into the document
   src/syntax.ts          code highlighting, language guessing, and keeping it local
   src/presence.ts        who else is here, read out of Yjs awareness
   src/components/        top bar, menu, history, presence, skeleton, notice

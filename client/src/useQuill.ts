@@ -8,6 +8,7 @@ import { catchPastedDataUrls, createInserter, IMAGE_MIME_TYPES, type Inserter } 
 import { t } from "./i18n";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
 import { markdownBindings } from "./markdown";
+import { pasteMarkdown } from "./markdown-paste";
 import { keepTokensLocal, refreshCodePickers, syntaxOptions } from "./syntax";
 import { connect } from "./socket";
 import { keepLocalCopy } from "./yjs/offline";
@@ -20,11 +21,11 @@ const TOOLBAR_OPTIONS = [
   [{ header: [1, 2, 3, 4, 5, 6, false] }],
   [{ font: [] }],
   [{ list: "ordered" }, { list: "bullet" }, { list: "check" }],
-  ["bold", "italic", "underline"],
+  ["bold", "italic", "underline", "strike"],
   [{ color: [] }, { background: [] }],
   [{ script: "sub" }, { script: "super" }],
   [{ align: [] }],
-  ["image", "blockquote", "code-block"],
+  ["link", "image", "blockquote", "code-block"],
   ["clean"],
 ];
 
@@ -162,11 +163,14 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
       if (others.length > 0) void inserter.current?.attach(others, range?.index);
     };
 
+    const stopPasting = pasteMarkdown(instance);
+
     setQuill(instance);
     setToolbar((instance.getModule("toolbar") as { container?: HTMLElement } | undefined)?.container ?? null);
     setEditorArea(instance.container);
 
     return () => {
+      stopPasting();
       setQuill(null);
       setToolbar(null);
       setEditorArea(null);

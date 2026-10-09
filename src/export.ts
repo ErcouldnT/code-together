@@ -24,7 +24,7 @@ export interface Segment {
 
 export interface Line {
   segments: Segment[];
-  /** heading, list, blockquote, code-block, align, indent */
+  /** heading, list, blockquote, code-block, align, indent — or divider, a rule */
   block: Record<string, unknown>;
 }
 
@@ -41,8 +41,14 @@ export function toLines(ops: DeltaOp[]): Line[] {
   for (const op of ops) {
     const attributes = op.attributes ?? {};
     if (typeof op.insert !== "string") {
-      const image = (op.insert as { image?: unknown } | undefined)?.image;
-      if (typeof image === "string") current.push({ image, attributes });
+      const embed = op.insert as { image?: unknown; divider?: unknown } | undefined;
+      if (typeof embed?.image === "string") current.push({ image: embed.image, attributes });
+      // A rule is a block of its own: whatever was on the line before it is
+      // a line, and the rule is the next one.
+      if (embed?.divider) {
+        if (current.length > 0) close({});
+        lines.push({ segments: [], block: { divider: true } });
+      }
       continue;
     }
 
@@ -134,6 +140,7 @@ function taskState(list: unknown): boolean | null {
 function blockTag(block: Record<string, unknown>): string {
   const header = Number(block.header);
   if (Number.isInteger(header) && header >= 1 && header <= 6) return `h${header}`;
+  if (block.divider) return "hr";
   if (block.blockquote) return "blockquote";
   if (block["code-block"]) return "pre";
   if (block.list) return "li";
@@ -174,7 +181,8 @@ export function toHtml(ops: DeltaOp[]): string {
     closeLists(0);
     const align = typeof line.block.align === "string" ? cssValue(line.block.align) : null;
     const style = align ? ` style="text-align:${escapeHtml(align)}"` : "";
-    out.push(tag === "pre" ? `<pre>${content}</pre>` : `<${tag}${style}>${content}</${tag}>`);
+    if (tag === "hr") out.push("<hr>");
+    else out.push(tag === "pre" ? `<pre>${content}</pre>` : `<${tag}${style}>${content}</${tag}>`);
   }
 
   closeLists(0);
@@ -283,7 +291,8 @@ export function toMarkdown(ops: DeltaOp[]): string {
     const header = Number(block.header);
     const indent = "  ".repeat(Math.max(0, Number(block.indent) || 0));
 
-    if (Number.isInteger(header) && header >= 1 && header <= 6) out.push(`${"#".repeat(header)} ${content}`);
+    if (block.divider) out.push("---");
+    else if (Number.isInteger(header) && header >= 1 && header <= 6) out.push(`${"#".repeat(header)} ${content}`);
     else if (block.blockquote) out.push(`> ${content}`);
     else if (block.list === "ordered") out.push(`${indent}1. ${content}`);
     else if (taskState(block.list) !== null) out.push(`${indent}- [${taskState(block.list) ? "x" : " "}] ${content}`);
