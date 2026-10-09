@@ -5,6 +5,7 @@ import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { and, asc, eq } from "drizzle-orm";
 import express, { type Request, type Router } from "express";
+import { allowed } from "./access.js";
 import { db } from "./db/index.js";
 import { documentAttachments, documents } from "./db/schema.js";
 import { env } from "./env.js";
@@ -190,6 +191,7 @@ export function attachmentRoutes(notify: (documentId: string) => void): Router {
       res.status(400).json({ error: "bad-id" });
       return;
     }
+    if (!allowed(req, res, id, "read")) return;
     res.json({ attachments: listAttachments(id), maxBytes: env.maxAttachmentBytes });
   });
 
@@ -204,6 +206,7 @@ export function attachmentRoutes(notify: (documentId: string) => void): Router {
       res.status(400).json({ error: "bad-id" });
       return;
     }
+    if (!allowed(req, res, id, "write")) return;
     const declared = Number(req.headers["content-length"]);
     if (Number.isFinite(declared) && declared > env.maxAttachmentBytes) {
       res.set("connection", "close").status(413).json({ error: "too-large" });
@@ -229,6 +232,7 @@ export function attachmentRoutes(notify: (documentId: string) => void): Router {
 
   router.get("/api/documents/:id/attachments/:attachmentId", (req, res) => {
     const id = documentId(req);
+    if (id && !allowed(req, res, id, "read")) return;
     const attachment = id ? findAttachment(id, req.params.attachmentId) : null;
     const path = id && attachment ? attachmentPath(id, attachment.id) : null;
     if (!attachment || !path) {
@@ -250,6 +254,7 @@ export function attachmentRoutes(notify: (documentId: string) => void): Router {
 
   router.delete("/api/documents/:id/attachments/:attachmentId", (req, res) => {
     const id = documentId(req);
+    if (id && !allowed(req, res, id, "write")) return;
     if (!id || !deleteAttachment(id, req.params.attachmentId)) {
       res.sendStatus(404);
       return;

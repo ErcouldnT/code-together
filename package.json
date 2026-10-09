@@ -45,6 +45,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "pino-http": "^11.0.0",
+    "slugify": "^1.6.9",
     "socket.io": "^4.8.3",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.32"

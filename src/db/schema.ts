@@ -33,6 +33,17 @@ export const documents = sqliteTable(
      * be listed without decoding its CRDT. Written by the persistence path.
      */
     title: text("title"),
+    /**
+     * `scrypt$salt$hash`, or null for a document anyone with the address may
+     * open and edit — which is every document made before this column existed.
+     */
+    passwordHash: text("password_hash"),
+    /**
+     * What the password guards: "view" keeps the whole document behind it,
+     * "edit" lets anyone read and only the password holder write. Null exactly
+     * when `passwordHash` is.
+     */
+    protect: text("protect", { enum: ["view", "edit"] }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),

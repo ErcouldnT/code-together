@@ -24,7 +24,8 @@ interface Props {
   ops: DeltaOp[];
   /** the document as it stands now */
   current: DeltaOp[];
-  onRestore: () => void;
+  /** absent for a reader, who can look back but not put anything back */
+  onRestore?: () => void;
   onClose: () => void;
   busy: boolean;
 }
@@ -112,9 +113,11 @@ export default function VersionPreview({ when, ops, current, onRestore, onClose,
         </div>
 
         <div className="preview-actions">
-          <button type="button" className="menu-button" disabled={busy} onClick={onRestore}>
-            {busy ? "Restoring…" : "Restore this"}
-          </button>
+          {onRestore && (
+            <button type="button" className="menu-button" disabled={busy} onClick={onRestore}>
+              {busy ? "Restoring…" : "Restore this"}
+            </button>
+          )}
           <button type="button" className="menu-button" onClick={onClose}>Close</button>
         </div>
       </div>

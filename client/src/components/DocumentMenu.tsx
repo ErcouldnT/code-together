@@ -2,17 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { recentDocuments, type RecentDocument } from "../recent";
 
 /**
- * Everything you can do to a document that is not typing in it: take it away
- * as a file, print it, or go back to one you had open before.
+ * Everything you can do to a document that is not typing in it: start a new
+ * one, take it away as a file, print it, or go back to one you had open before.
  */
 
 interface Props {
   documentId: string;
   onShowHistory: () => void;
   onShowAttachments: () => void;
+  onNewDocument: () => void;
+  onUnlock?: () => void;
 }
 
-export default function DocumentMenu({ documentId, onShowHistory, onShowAttachments }: Props) {
+export default function DocumentMenu({ documentId, onShowHistory, onShowAttachments, onNewDocument, onUnlock }: Props) {
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<RecentDocument[]>([]);
   const root = useRef<HTMLDivElement>(null);
@@ -51,6 +53,31 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
 
       {open && (
         <div className="menu-panel" role="menu">
+          <button
+            type="button"
+            className="menu-item"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onNewDocument();
+            }}
+          >
+            New document…
+          </button>
+          {onUnlock && (
+            <button
+              type="button"
+              className="menu-item"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onUnlock();
+              }}
+            >
+              Unlock editing…
+            </button>
+          )}
+          <hr className="menu-separator" />
           {/* Plain links, not fetch-and-save: the server already sends the
               right Content-Disposition, so the browser's own download does
               the work and keeps working with the tab closed. */}

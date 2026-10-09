@@ -11,11 +11,17 @@ import type {
   ServerToClientEvents,
   UpdateRejection,
 } from "../shared/events.js";
+import { accessFor } from "./access.js";
 import { env } from "./env.js";
 import { joinRoom, leaveRoom, ROOM_ID, whenSaved, type Room } from "./rooms.js";
 
 interface SocketData {
   room?: Room;
+  /**
+   * Whether this socket may change the room it is in. Decided at join from the
+   * handshake's cookies, which is why unlocking means reconnecting.
+   */
+  canWrite: boolean;
   /**
    * The Yjs client ids this socket has announced. Kept so a disconnect can
    * clear exactly this person's cursor and nobody else's — without it, a
@@ -57,6 +63,13 @@ function ingest(socket: AppSocket, update: unknown, ack?: () => void): void {
   if (!ArrayBuffer.isView(update)) return;
 
   const bytes = new Uint8Array(update.buffer, update.byteOffset, update.byteLength);
+  if (!socket.data.canWrite) {
+    // Every join answers the server's state vector with an update, and for a
+    // reader that update is empty. Acknowledge that one: refusing it would
+    // leave the reader's tab believing it holds unsaved work it never wrote.
+    if (ack && isEmptyUpdate(bytes)) return ack();
+    return reject("read-only");
+  }
   if (bytes.byteLength > env.maxUpdateBytes) return reject("too-large");
   if (!withinRate(socket)) return reject("too-fast");
   if (room.bytes > env.maxDocumentBytes) return reject("document-full");
@@ -84,6 +97,7 @@ export function attachSockets(httpServer: HttpServer): IoServer {
 
   io.on("connection", (socket) => {
     socket.data.awarenessClients = new Set();
+    socket.data.canWrite = false;
     socket.data.updates = 0;
     socket.data.windowStart = Date.now();
 
@@ -109,6 +123,13 @@ export function attachSockets(httpServer: HttpServer): IoServer {
         if (socket.data.room.id === documentId) return;
         leaveSocketRoom(socket);
       }
+
+      const access = accessFor(documentId, socket.handshake.headers.cookie);
+      if (!access.read) {
+        socket.emit("join-error", "locked");
+        return;
+      }
+      socket.data.canWrite = access.write;
 
       const room = joinRoom(documentId, socket.id);
       if (room.bytes > env.maxDocumentBytes) {
@@ -190,6 +211,17 @@ export function attachSockets(httpServer: HttpServer): IoServer {
   });
 
   return io;
+}
+
+/** An update that changes nothing: no new items and nothing deleted. */
+function isEmptyUpdate(bytes: Uint8Array): boolean {
+  try {
+    const { structs, ds } = Y.decodeUpdate(bytes);
+    return structs.length === 0 && ds.clients.size === 0;
+  }
+  catch {
+    return false;
+  }
 }
 
 /** Socket.io hands binary over as a Buffer; Yjs wants a plain view of it. */

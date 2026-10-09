@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import { pinoHttp } from "pino-http";
+import { accessRoutes, allowed } from "./access.js";
 import { attachmentRoutes } from "./attachments.js";
 import { closeDatabase, runMigrations } from "./db/index.js";
 import { contentsOf, deleteStaleDocuments, referencedUploads, storedContents } from "./documents.js";
@@ -116,6 +117,9 @@ app.get("/uploads/:name", (req, res) => {
   });
 });
 
+// Making a named document, and unlocking one with a password.
+app.use(accessRoutes());
+
 // Files attached to a document. Everyone in the room is told when the list
 // changes, so a second tab never shows a file that is already gone.
 app.use(attachmentRoutes((documentId) => io.to(documentId).emit("attachments-changed")));
@@ -133,6 +137,7 @@ app.get("/api/documents/:id/export", (req, res) => {
     res.status(400).json({ error: "bad-id" });
     return;
   }
+  if (!allowed(req, res, id, "read")) return;
 
   const format = req.query.format === "md" ? "md" : "html";
   // The live copy when somebody has the room open, because the stored one is
@@ -159,6 +164,7 @@ app.get("/api/documents/:id/snapshots", (req, res) => {
     res.status(400).json({ error: "bad-id" });
     return;
   }
+  if (!allowed(req, res, id, "read")) return;
   res.json({ snapshots: listSnapshots(id) });
 });
 
@@ -168,6 +174,7 @@ app.get("/api/documents/:id/snapshots/:snapshotId", (req, res) => {
     res.status(400).json({ error: "bad-id" });
     return;
   }
+  if (!allowed(req, res, id, "read")) return;
   const contents = snapshotContents(id, req.params.snapshotId);
   if (!contents) {
     res.sendStatus(404);

@@ -29,6 +29,16 @@ The **Document** menu takes it away as HTML or Markdown, prints it (which is
 also how you save a PDF), lists the rooms you have opened before, and opens the
 version history.
 
+**New document…** at the top of that menu makes a document with a name instead
+of a random address: "Toplantı Notları" lives at `/toplanti-notlari` and starts
+with that title. It can have a password, and the person making it chooses what
+the password guards — *viewing*, so nobody without it sees anything, or
+*editing*, so everyone can read and only the password holder can write. A
+reader of an edit-protected document finds **Unlock editing…** in the same
+menu. Without a password a document is what every document always was: anyone
+with the address reads and writes. Passwords are stored as scrypt hashes; a
+browser that knows one gets an HttpOnly cookie, so it is asked once.
+
 ## Stack
 
 | Layer     | Technology |
@@ -47,6 +57,7 @@ format fails the build on whichever side is out of date.
 ```
 src/                     Express + Socket.io server
   db/                    Drizzle schema and client
+  access.ts              named documents, passwords, and who may read or write
   documents.ts           load and save a room as a Yjs document
   export.ts              one delta, two file formats
   snapshots.ts           version history: periodic states, and restoring one
@@ -144,7 +155,7 @@ Because state lives in one SQLite file and in-process Socket.io rooms, run **one
   * [x] Image upload, so a pasted screenshot is a link and not a megabyte of base64
   * [x] Document name input
   * [x] Version history and export (HTML, Markdown, print to PDF)
-  * [ ] Access control: today, anyone with the five-character address can edit
+  * [x] Access control: named documents with a password on viewing or on editing
   * [ ] Video conference with webRTC
 
 &copy; 2021 Ercode

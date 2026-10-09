@@ -778,3 +778,150 @@ a.menu-button {
   color: var(--text);
   font-size: 1rem;
 }
+
+.menu-separator {
+  margin: 0.25rem 0.3rem;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+/*
+ * A reader gets the document and the presence chips, not ten groups of
+ * formatting buttons that do nothing. Only the groups go: the chips live in
+ * the same toolbar row and still say who else is here.
+ */
+.container[data-readonly] .ql-toolbar.ql-snow .ql-formats {
+  display: none;
+}
+
+/* New document, and asking for a password. Native <dialog>, so the browser
+   supplies the backdrop, the focus trap and Escape. */
+.dialog {
+  width: min(26rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--panel-bg);
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1.2rem;
+  color: var(--text);
+  font: 0.9rem/1.4 system-ui, sans-serif;
+}
+
+.dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.dialog-title {
+  margin: 0;
+  font: 600 1.05rem/1.3 system-ui, sans-serif;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+.dialog-label {
+  padding: 0;
+  color: var(--muted);
+  font: 600 0.78rem/1.3 system-ui, sans-serif;
+}
+
+.dialog-input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--sheet-bg);
+  padding: 0.45rem 0.55rem;
+  color: var(--text);
+  font: inherit;
+}
+
+.dialog-input:focus {
+  border-color: var(--link);
+  outline: none;
+}
+
+.dialog-input:disabled {
+  opacity: 0.5;
+}
+
+.dialog-input[aria-invalid="true"] {
+  border-color: #d14343;
+}
+
+.dialog-hint {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 0.78rem/1.3 ui-monospace, monospace;
+}
+
+.dialog-hint-error {
+  color: #d14343;
+  font-family: system-ui, sans-serif;
+}
+
+.dialog-choice label {
+  display: block;
+  padding: 0.15rem 0;
+  cursor: pointer;
+}
+
+.dialog-choice:disabled {
+  opacity: 0.5;
+}
+
+.dialog-choice:disabled label {
+  cursor: default;
+}
+
+.dialog-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.dialog-error {
+  margin: 0;
+  color: #d14343;
+  font-size: 0.85rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.dialog-actions .menu-button {
+  text-decoration: none;
+}
+
+.dialog-primary {
+  border-color: var(--link);
+  background-color: var(--link);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.dialog-primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@media (prefers-color-scheme: dark) {
+  .dialog-primary {
+    color: #0b1220;
+  }
+}

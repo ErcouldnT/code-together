@@ -31,6 +31,8 @@ const MESSAGES = {
   "too-fast": "Slow down — some changes were not saved.",
   "document-full": "This document is full; new changes are not being saved.",
   "not-joined": "Not connected to the document yet.",
+  "locked": "This document needs its password. Reload the page to enter it.",
+  "read-only": "This document is read-only; your change was not saved.",
 } as const;
 
 /**
@@ -88,7 +90,7 @@ export interface EditorState {
  * each other, so the two documents diverged and the next full-document save
  * silently overwrote whichever one arrived first.
  */
-export function useQuill(documentId: string | undefined): EditorState {
+export function useQuill(documentId: string | undefined, readOnly = false): EditorState {
   const [quill, setQuill] = useState<Quill | null>(null);
   const [provider, setProvider] = useState<SocketProvider | null>(null);
   const [status, setStatus] = useState<ProviderStatus>("connecting");
@@ -152,6 +154,9 @@ export function useQuill(documentId: string | undefined): EditorState {
     };
     const uploadImages = uploader.upload.bind(uploader);
     uploader.upload = (range, files) => {
+      // Quill takes drops on a disabled editor too, and the server would
+      // refuse what they lead to; better not to start an upload at all.
+      if (!instance.isEnabled()) return;
       const all = Array.from(files);
       const isImage = (file: File) => IMAGE_MIME_TYPES.includes(file.type);
       uploadImages(range, all.filter(isImage));
@@ -234,9 +239,9 @@ export function useQuill(documentId: string | undefined): EditorState {
 
   useEffect(() => {
     if (!quill) return;
-    if (ready) quill.enable();
+    if (ready && !readOnly) quill.enable();
     else quill.disable();
-  }, [quill, ready]);
+  }, [quill, ready, readOnly]);
 
   // The name and colour every other person sees on this cursor. y-quill reads
   // `user.name` and `user.color` straight off the awareness state; without

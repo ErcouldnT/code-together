@@ -31,12 +31,13 @@ interface Snapshot {
 interface Props {
   documentId: string;
   provider: SocketProvider | null;
+  readOnly: boolean;
   onClose: () => void;
 }
 
 const when = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
-export default function HistoryPanel({ documentId, provider, onClose }: Props) {
+export default function HistoryPanel({ documentId, provider, readOnly, onClose }: Props) {
   const [snapshots, setSnapshots] = useState<Snapshot[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<{ id: string; when: string; ops: DeltaOp[] } | null>(null);
@@ -129,7 +130,7 @@ export default function HistoryPanel({ documentId, provider, onClose }: Props) {
           ops={viewing.ops}
           current={currentOps}
           busy={busy}
-          onRestore={() => restore(viewing.ops)}
+          onRestore={readOnly ? undefined : () => restore(viewing.ops)}
           onClose={() => setViewing(null)}
         />
       )}

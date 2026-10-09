@@ -24,6 +24,8 @@ interface Props {
   documentId: string;
   provider: SocketProvider | null;
   addedBy: string;
+  /** a reader can download what is there, and nothing else */
+  readOnly: boolean;
   onClose: () => void;
 }
 
@@ -35,7 +37,7 @@ interface Pending {
 
 const when = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
-export default function AttachmentsPanel({ documentId, provider, addedBy, onClose }: Props) {
+export default function AttachmentsPanel({ documentId, provider, addedBy, readOnly, onClose }: Props) {
   const [attachments, setAttachments] = useState<Attachment[] | null>(null);
   const [maxBytes, setMaxBytes] = useState<number | null>(null);
   const [pending, setPending] = useState<Pending[]>([]);
@@ -109,7 +111,7 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, onClos
       role="dialog"
       aria-label="Attachments"
       onDragOver={(event) => {
-        if (!event.dataTransfer.types.includes("Files")) return;
+        if (readOnly || !event.dataTransfer.types.includes("Files")) return;
         event.preventDefault();
         setDragging(true);
       }}
@@ -117,7 +119,7 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, onClos
       onDrop={(event) => {
         event.preventDefault();
         setDragging(false);
-        void add(event.dataTransfer.files);
+        if (!readOnly) void add(event.dataTransfer.files);
       }}
     >
       <div className="history-head">
@@ -125,22 +127,26 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, onClos
         <button type="button" className="menu-button" onClick={onClose}>Close</button>
       </div>
 
-      <button type="button" className="menu-button attachments-add" onClick={() => input.current?.click()}>
-        Add files…
-      </button>
-      <input
-        ref={input}
-        type="file"
-        multiple
-        hidden
-        onChange={(event) => {
-          if (event.target.files) void add(event.target.files);
-          event.target.value = "";
-        }}
-      />
-      <p className="history-empty">
-        Or drop files here{maxBytes !== null && ` — up to ${formatBytes(maxBytes)} each`}.
-      </p>
+      {!readOnly && (
+        <>
+          <button type="button" className="menu-button attachments-add" onClick={() => input.current?.click()}>
+            Add files…
+          </button>
+          <input
+            ref={input}
+            type="file"
+            multiple
+            hidden
+            onChange={(event) => {
+              if (event.target.files) void add(event.target.files);
+              event.target.value = "";
+            }}
+          />
+          <p className="history-empty">
+            Or drop files here{maxBytes !== null && ` — up to ${formatBytes(maxBytes)} each`}.
+          </p>
+        </>
+      )}
 
       {error && <p className="history-error">{error}</p>}
 
@@ -183,9 +189,11 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, onClos
                 <a className="menu-button" href={downloadUrl(documentId, entry.id)} download={entry.name}>
                   Download
                 </a>
-                <button type="button" className="menu-button" onClick={() => setConfirming(entry.id)}>
-                  Delete
-                </button>
+                {!readOnly && (
+                  <button type="button" className="menu-button" onClick={() => setConfirming(entry.id)}>
+                    Delete
+                  </button>
+                )}
               </div>
             )}
         </div>

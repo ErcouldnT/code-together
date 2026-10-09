@@ -31,10 +31,10 @@ export interface LegacyDocumentData {
 }
 
 /** Why the server refused to open a room, in a form the client can show. */
-export type JoinErrorReason = "bad-id" | "too-large";
+export type JoinErrorReason = "bad-id" | "too-large" | "locked";
 
 /** Why the server dropped an update instead of applying it. */
-export type UpdateRejection = "too-large" | "too-fast" | "document-full" | "not-joined";
+export type UpdateRejection = "too-large" | "too-fast" | "document-full" | "not-joined" | "read-only";
 
 export interface ServerToClientEvents {
   /** Step 1: what the server has. The client answers with `sync-step-2`. */
