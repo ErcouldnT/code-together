@@ -40,6 +40,8 @@ export type SaveState = "saving" | "saved" | "offline";
 
 export interface EditorState {
   containerRef: (node: HTMLDivElement | null) => void;
+  /** the editor itself, for things that read the document's shape */
+  quill: Quill | null;
   status: ProviderStatus;
   /** null when everything is fine */
   problem: string | null;
@@ -293,6 +295,7 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
 
   return {
     containerRef,
+    quill,
     status,
     problem,
     uploading,

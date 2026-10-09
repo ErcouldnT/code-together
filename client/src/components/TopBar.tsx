@@ -25,6 +25,8 @@ interface Props {
   saveState: SaveState;
   onThisDevice: boolean;
   readOnly: boolean;
+  contentsOpen: boolean;
+  onToggleContents: () => void;
 }
 
 export default function TopBar(
@@ -41,10 +43,31 @@ export default function TopBar(
     saveState,
     onThisDevice,
     readOnly,
+    contentsOpen,
+    onToggleContents,
   }: Props,
 ) {
   return (
     <header className="topbar">
+      <button
+        type="button"
+        className="topbar-icon"
+        aria-pressed={contentsOpen}
+        aria-label={contentsOpen ? t("toc.hide") : t("toc.show")}
+        title={contentsOpen ? t("toc.hide") : t("toc.show")}
+        onClick={onToggleContents}
+      >
+        {/* an outline: a heading and two indented lines under it */}
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+          <path
+            d="M3 5h14M6 10h11M6 15h11"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
       <input
         className="topbar-title"
         value={title}

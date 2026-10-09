@@ -1276,3 +1276,184 @@ html[lang="ru"] .ql-snow .ql-tooltip a.ql-remove::before {
 html[lang="ru"] .ql-snow .ql-tooltip.ql-editing a.ql-action::after {
   content: "Сохранить";
 }
+
+/*
+ * The outline. On a wide screen a column down the left, under the top bar,
+ * with the page moved over to make room for it; on anything narrower a drawer
+ * over the page with a backdrop behind it.
+ */
+:root {
+  --toc-w: 16rem;
+}
+
+.topbar-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  padding: 0;
+  color: var(--icon);
+  cursor: pointer;
+}
+
+.topbar-icon:hover,
+.topbar-icon:focus-visible {
+  border-color: var(--border);
+}
+
+.topbar-icon[aria-pressed="true"] {
+  background-color: var(--code-bg);
+  color: var(--text);
+}
+
+.toc {
+  position: fixed;
+  z-index: 3;
+  top: var(--topbar-h);
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--toc-w);
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background-color: var(--panel-bg);
+  padding: 0.75rem 0.5rem calc(0.75rem + env(safe-area-inset-bottom));
+  font: 0.875rem/1.35 system-ui, sans-serif;
+}
+
+.toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0.25rem 0.5rem 0.6rem;
+}
+
+.toc-title {
+  margin: 0;
+  color: var(--muted);
+  font: 600 0.72rem/1.3 system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.toc-close {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.toc-close:hover,
+.toc-close:focus-visible {
+  background-color: var(--code-bg);
+  color: var(--text);
+}
+
+.toc-empty {
+  margin: 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.toc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc-item {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 5px 5px 0;
+  background: none;
+  padding-block: 0.35rem;
+  padding-inline-end: 0.5rem;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.toc-item[data-level="1"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.toc-item:hover,
+.toc-item:focus-visible {
+  background-color: var(--code-bg);
+  color: var(--text);
+}
+
+.toc-item[aria-current="location"] {
+  border-left-color: var(--accent);
+  background-color: var(--code-bg);
+  color: var(--text);
+}
+
+@media (min-width: 70em) {
+  .container[data-toc] {
+    margin-left: var(--toc-w);
+  }
+}
+
+/* The drawer, below 70em. Wider than the column, since it has the screen. */
+.toc[data-overlay] {
+  z-index: 8;
+  width: min(20rem, 85vw);
+  box-shadow: var(--shadow);
+}
+
+.toc[data-overlay] .toc-item {
+  /* thumb-sized rows */
+  padding-block: 0.6rem;
+}
+
+.toc-backdrop {
+  position: fixed;
+  z-index: 7;
+  inset: var(--topbar-h) 0 0;
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toc[data-overlay] {
+    animation: toc-in 160ms ease-out;
+  }
+
+  @keyframes toc-in {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+}
+
+@media print {
+  .toc,
+  .toc-backdrop,
+  .topbar-icon {
+    display: none;
+  }
+
+  .container[data-toc] {
+    margin-left: 0;
+  }
+}

@@ -43,6 +43,13 @@ colours are drawn by each browser and never enter the document: Quill
 highlights by formatting the text, and left alone y-quill would broadcast
 every one of those formats to the room and store them with the text.
 
+The button at the left of the title row opens the document's **contents**:
+every heading, indented by level, with the one you are reading marked.
+Choosing one scrolls to it. On a wide screen the outline is a column beside
+the page that stays open until you close it (and this browser remembers);
+on a tablet or a phone it is a drawer over the page that puts itself away
+once you have picked a heading.
+
 Everyone in a room gets a name and a colour, shown as a chip at the right of
 the toolbar and on their cursor as it moves. There are no accounts — a room is
 a URL — so the name lives in your own browser and you can change it by clicking

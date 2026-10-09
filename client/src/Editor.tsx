@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import type { AccessInfo } from "@shared/access";
@@ -9,6 +9,7 @@ import DocumentSkeleton from "./components/DocumentSkeleton";
 import HistoryPanel from "./components/HistoryPanel";
 import NewDocumentDialog from "./components/NewDocumentDialog";
 import PresenceBar from "./components/PresenceBar";
+import TableOfContents, { useHeadings } from "./components/TableOfContents";
 import TopBar from "./components/TopBar";
 import UnlockDialog from "./components/UnlockDialog";
 import { useQuill } from "./useQuill";
@@ -26,6 +27,52 @@ import { useTitle } from "./useTitle";
  * this browser instead of an error.
  */
 const UNKNOWN: AccessInfo = { protect: null, read: true, write: true };
+
+/** Wide enough for the outline to sit beside the page instead of over it. */
+const WIDE = "(min-width: 70em)";
+const TOC_KEY = "code-together:toc";
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const onChange = () => setMatches(media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, [query]);
+  return matches;
+}
+
+/**
+ * Whether the outline is open. On a wide screen it is a column people leave
+ * open, so the choice is remembered — open unless they closed it. On a narrow
+ * one it is a drawer opened for a moment, so it always starts shut.
+ */
+function useContentsOpen(wide: boolean): [boolean, (open: boolean) => void] {
+  const [open, setOpen] = useState(() => {
+    if (!wide) return false;
+    try {
+      return localStorage.getItem(TOC_KEY) !== "closed";
+    }
+    catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    if (!wide) setOpen(false);
+  }, [wide]);
+  const choose = useCallback((next: boolean) => {
+    setOpen(next);
+    if (!wide) return;
+    try {
+      localStorage.setItem(TOC_KEY, next ? "open" : "closed");
+    }
+    catch {
+      // without storage the choice lasts as long as the page
+    }
+  }, [wide]);
+  return [open, choose];
+}
 
 export default function Editor() {
   const { id: documentId } = useParams<{ id: string }>();
@@ -54,6 +101,7 @@ function DocumentView({ documentId, access }: { documentId: string; access: Acce
   const readOnly = !access.write;
   const {
     containerRef,
+    quill,
     status,
     problem,
     uploading,
@@ -70,6 +118,10 @@ function DocumentView({ documentId, access }: { documentId: string; access: Acce
   // One panel at a time: they sit in the same place.
   const [panel, setPanel] = useState<"history" | "attachments" | null>(null);
   const [dialog, setDialog] = useState<"new" | "unlock" | null>(null);
+  const wide = useMediaQuery(WIDE);
+  const [contentsOpen, setContentsOpen] = useContentsOpen(wide);
+  const headings = useHeadings(quill);
+  const closeContents = useCallback(() => setContentsOpen(false), [setContentsOpen]);
 
   return (
     <>
@@ -86,7 +138,11 @@ function DocumentView({ documentId, access }: { documentId: string; access: Acce
         saveState={saveState}
         onThisDevice={onThisDevice}
         readOnly={readOnly}
+        contentsOpen={contentsOpen}
+        onToggleContents={() => setContentsOpen(!contentsOpen)}
       />
+
+      {contentsOpen && <TableOfContents headings={headings} overlay={!wide} onClose={closeContents} />}
 
       {panel === "history" && (
         <HistoryPanel
@@ -116,7 +172,12 @@ function DocumentView({ documentId, access }: { documentId: string; access: Acce
           document, the notice bar is the words about it. */}
       <ConnectionStatus status={status} problem={problem} uploading={uploading} />
 
-      <div className="container" ref={containerRef} data-readonly={readOnly || undefined} />
+      <div
+        className="container"
+        ref={containerRef}
+        data-readonly={readOnly || undefined}
+        data-toc={(contentsOpen && wide) || undefined}
+      />
 
       {!ready && editorArea && createPortal(<DocumentSkeleton problem={problem} />, editorArea)}
 

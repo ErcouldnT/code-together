@@ -85,6 +85,10 @@ const en = {
   "topbar.titleLabel": "Document title",
   "topbar.readOnly": "Read only",
   "topbar.readOnlyHint": "You can read this document but not change it.",
+  "toc.title": "Contents",
+  "toc.show": "Show contents",
+  "toc.hide": "Hide contents",
+  "toc.empty": "Headings appear here. Start a line with # to make one.",
 
   "save.saving": "Saving…",
   "save.saved": "Saved",
@@ -205,6 +209,10 @@ const tr: Dictionary = {
   "topbar.titleLabel": "Belge başlığı",
   "topbar.readOnly": "Salt okunur",
   "topbar.readOnlyHint": "Bu belgeyi okuyabilirsin ama değiştiremezsin.",
+  "toc.title": "İçindekiler",
+  "toc.show": "İçindekileri göster",
+  "toc.hide": "İçindekileri gizle",
+  "toc.empty": "Başlıklar burada görünür. Başlık için satıra # ile başla.",
 
   "save.saving": "Kaydediliyor…",
   "save.saved": "Kaydedildi",
@@ -322,6 +330,10 @@ const ru: Dictionary = {
   "topbar.titleLabel": "Название документа",
   "topbar.readOnly": "Только чтение",
   "topbar.readOnlyHint": "Вы можете читать этот документ, но не изменять его.",
+  "toc.title": "Содержание",
+  "toc.show": "Показать содержание",
+  "toc.hide": "Скрыть содержание",
+  "toc.empty": "Здесь появятся заголовки. Начните строку с #, чтобы создать заголовок.",
 
   "save.saving": "Сохранение…",
   "save.saved": "Сохранено",
