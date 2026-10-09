@@ -237,6 +237,13 @@ deleting a picture between the upload finishing and the document being saved.
 | `MAX_ATTACHMENT_BYTES` | no | `1073741824` | Largest file that can be attached to a document (1 GB). Streamed to disk, not held in memory. |
 | `SNAPSHOT_EVERY_MS` | no | `600000` | How often a changing document earns a point in its history. |
 | `SNAPSHOT_KEEP` | no | `20` | Points kept per document; older ones are dropped. |
+| `ADMIN_TOKEN` | no | — | Password for `/admin`. Unset, the admin screen and its routes do not exist. |
+| `REQUESTS_PER_MINUTE` | no | `300` | HTTP requests one address may make per minute. |
+| `ATTACHMENT_QUOTA_BYTES` | no | `0` | Most one document's attachments may add up to. `0` is no limit. |
+| `STORAGE_QUOTA_BYTES` | no | `0` | Most every stored file together may take, pictures and attachments both. `0` is no limit. |
+
+The sizes and rate limits above are only where each one starts: anything changed on the
+admin screen is kept in the database and outranks them.
 
 Websockets need no extra configuration: Traefik upgrades them on the same host and path.
 Because state lives in one SQLite file and in-process Socket.io rooms, run **one replica**.
@@ -250,6 +257,11 @@ Because state lives in one SQLite file and in-process Socket.io rooms, run **one
   * [x] Document name input
   * [x] Version history and export (HTML, Markdown, print to PDF)
   * [x] Access control: named documents with a password on viewing or on editing
+  * [x] Markdown shortcuts, task lists, and code blocks that guess their language
+  * [x] A contents panel built from the headings
+  * [x] Documents that delete themselves after a set time
+  * [x] Share by QR code
+  * [x] Admin screen: live rate limits, upload quotas, clearing out empty and abandoned documents
   * [ ] Video conference with webRTC
 
 &copy; 2021 Ercode
