@@ -134,3 +134,16 @@ export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
 export type DocumentSnapshot = typeof documentSnapshots.$inferSelect;
 export type DocumentAttachment = typeof documentAttachments.$inferSelect;
+
+/**
+ * Limits changed from the admin screen, one row per limit, the value as JSON.
+ * A limit with no row here is whatever the environment says — so a fresh
+ * install behaves exactly as configured, and clearing a row returns to it.
+ */
+export const settings = sqliteTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value", { mode: "json" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});

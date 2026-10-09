@@ -1642,3 +1642,189 @@ button.expiry-badge {
     display: none;
   }
 }
+
+/* /admin — a plain page of cards, one column on a phone, wider on a desk. */
+.admin {
+  min-height: 100dvh;
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+}
+
+.admin-bar {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--panel-bg);
+  padding: 0.5rem max(1rem, env(safe-area-inset-left));
+}
+
+.admin-bar a.menu-button {
+  text-decoration: none;
+}
+
+.admin-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.admin-main {
+  display: grid;
+  max-width: 60rem;
+  gap: 1rem;
+  margin: 0 auto;
+  padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom));
+}
+
+.admin-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--panel-bg);
+  padding: 1rem 1.1rem;
+}
+
+.admin-narrow {
+  width: 100%;
+  max-width: 24rem;
+  justify-self: center;
+  margin-top: 10vh;
+}
+
+.admin-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.admin-heading {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.admin-muted {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.admin-stats {
+  display: grid;
+  /* two across on a phone, as many as fit on a desk */
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+}
+
+.admin-stat {
+  border-radius: 8px;
+  background-color: var(--code-bg);
+  padding: 0.65rem 0.75rem;
+}
+
+.admin-stat-name {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.admin-stat-value {
+  margin: 0.2rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-limits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 1rem 1.25rem;
+}
+
+.admin-limit {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.admin-limit-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-limit-input {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-limit-input .dialog-input {
+  flex: 1;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-limit-input .dialog-input[aria-invalid="true"] {
+  border-color: #d14343;
+}
+
+.admin-unit {
+  flex: 0 0 auto;
+  min-width: 2.5rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.admin-limit-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.admin-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.admin-ok {
+  color: #15803d;
+  font-size: 0.875rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .admin-ok {
+    color: #4ade80;
+  }
+}
+
+@media (max-width: 40em) {
+  .admin-main {
+    padding-inline: 0.6rem;
+  }
+
+  /* the save button within thumb reach at the bottom of each form */
+  .admin-actions .dialog-primary {
+    flex: 1 1 100%;
+    padding-block: 0.6rem;
+  }
+}

@@ -9,10 +9,13 @@ import { allowed } from "./access.js";
 import { db } from "./db/index.js";
 import { documentAttachments, documents } from "./db/schema.js";
 import { env } from "./env.js";
+import { limits } from "./settings.js";
+import { noteStored, storageRoom } from "./storage.js";
 import { ROOM_ID } from "./rooms.js";
 
 /**
- * Files attached to a document: any type, up to `env.maxAttachmentBytes`.
+ * Files attached to a document: any type, up to the per-file size and the
+ * quotas in settings.ts — all three changeable from the admin screen.
  *
  * Unlike the picture store in uploads.ts this is not content-addressed. Each
  * attachment is its own file under a random id, so deleting one can unlink it
@@ -94,6 +97,31 @@ export function findAttachment(documentId: string, attachmentId: string): Attach
 
 class TooLarge extends Error {}
 
+/** Bytes a document's attachments already take up. */
+function attachedBytes(documentId: string): number {
+  return listAttachments(documentId).reduce((sum, entry) => sum + entry.size, 0);
+}
+
+/**
+ * The most one more file may be for this document, and which limit says so:
+ * the per-file size, what is left of the document's own quota, or what is
+ * left of the storage quota for everything.
+ */
+export function attachmentAllowance(documentId: string): { bytes: number; by: "size" | "quota" } {
+  const { maxAttachmentBytes, attachmentQuotaBytes } = limits();
+  let bytes = maxAttachmentBytes;
+  let by: "size" | "quota" = "size";
+  const documentRoom = attachmentQuotaBytes > 0
+    ? Math.max(0, attachmentQuotaBytes - attachedBytes(documentId))
+    : Infinity;
+  const room = Math.min(documentRoom, storageRoom());
+  if (room < bytes) {
+    bytes = room;
+    by = "quota";
+  }
+  return { bytes, by };
+}
+
 /**
  * Stream a request body to disk, never holding it in memory.
  *
@@ -104,7 +132,7 @@ export async function saveAttachment(
   documentId: string,
   body: NodeJS.ReadableStream,
   meta: { name: string; addedBy: string | null },
-): Promise<AttachmentInfo | { error: "too-large" | "no-document" }> {
+): Promise<AttachmentInfo | { error: "too-large" | "quota" | "no-document" }> {
   const exists = db.select({ id: documents.id }).from(documents).where(eq(documents.id, documentId)).get();
   if (!exists) return { error: "no-document" };
 
@@ -114,11 +142,12 @@ export async function saveAttachment(
   mkdirSync(join(attachmentsRoot(), documentId), { recursive: true });
   const temporary = `${target}.part`;
 
+  const allowance = attachmentAllowance(documentId);
   let size = 0;
   const counter = new Transform({
     transform(chunk: Buffer, _encoding, done) {
       size += chunk.length;
-      if (size > env.maxAttachmentBytes) done(new TooLarge());
+      if (size > allowance.bytes) done(new TooLarge());
       else done(null, chunk);
     },
   });
@@ -128,11 +157,12 @@ export async function saveAttachment(
   }
   catch (error) {
     rmSync(temporary, { force: true });
-    if (error instanceof TooLarge) return { error: "too-large" };
+    if (error instanceof TooLarge) return { error: allowance.by === "quota" ? "quota" : "too-large" };
     throw error;
   }
 
   renameSync(temporary, target);
+  noteStored("attachments", size);
   try {
     const row = db
       .insert(documentAttachments)
@@ -192,7 +222,7 @@ export function attachmentRoutes(notify: (documentId: string) => void): Router {
       return;
     }
     if (!allowed(req, res, id, "read")) return;
-    res.json({ attachments: listAttachments(id), maxBytes: env.maxAttachmentBytes });
+    res.json({ attachments: listAttachments(id), maxBytes: attachmentAllowance(id).bytes });
   });
 
   /**
@@ -208,8 +238,10 @@ export function attachmentRoutes(notify: (documentId: string) => void): Router {
     }
     if (!allowed(req, res, id, "write")) return;
     const declared = Number(req.headers["content-length"]);
-    if (Number.isFinite(declared) && declared > env.maxAttachmentBytes) {
-      res.set("connection", "close").status(413).json({ error: "too-large" });
+    const allowance = attachmentAllowance(id);
+    if (Number.isFinite(declared) && declared > allowance.bytes) {
+      const quota = allowance.by === "quota";
+      res.set("connection", "close").status(quota ? 507 : 413).json({ error: quota ? "quota" : "too-large" });
       return;
     }
     try {
@@ -218,7 +250,7 @@ export function attachmentRoutes(notify: (documentId: string) => void): Router {
         addedBy: typeof req.query.by === "string" ? req.query.by.slice(0, 80) : null,
       });
       if ("error" in saved) {
-        const status = saved.error === "too-large" ? 413 : 404;
+        const status = saved.error === "too-large" ? 413 : saved.error === "quota" ? 507 : 404;
         res.set("connection", "close").status(status).json(saved);
         return;
       }

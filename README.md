@@ -92,6 +92,28 @@ English otherwise — and can be changed at the bottom of the Document menu,
 which this browser then remembers. Generated names follow suit: a Turkish
 browser joins as "Sessiz Şahin", a Russian one as "Тихий Сокол".
 
+## Administration
+
+Set `ADMIN_TOKEN` and `/admin` becomes an admin screen; leave it unset and
+the screen, and every route behind it, does not exist. Signing in with the
+token sets an HttpOnly cookie that is an HMAC keyed by the token itself, so
+changing the token signs everybody out.
+
+The screen shows how the server is doing — documents, who has what open,
+how much the pictures, attachments and database take up — and every limit
+it enforces, in the units people think in:
+
+- **rate limits**: HTTP requests per address per minute, password attempts,
+  named documents made, and edits per connection per time window;
+- **sizes and quotas**: the largest document, picture and attachment, the
+  total attachments one document may hold, and the total for every stored
+  file.
+
+A change applies to the next request with no restart: each limit is read at
+the moment it is enforced. Changed limits are kept in the database and
+outrank the environment, which only says where each one starts; "Use
+default" hands one back to the environment.
+
 ## Stack
 
 | Layer     | Technology |
@@ -112,6 +134,9 @@ src/                     Express + Socket.io server
   db/                    Drizzle schema and client
   access.ts              named documents, passwords, and who may read or write
   expiry.ts              documents that delete themselves, and staying deleted
+  admin.ts               the admin screen's API, behind ADMIN_TOKEN
+  settings.ts            the limits as they stand, changeable without a restart
+  storage.ts             how much the stored files take up, for the quotas
   documents.ts           load and save a room as a Yjs document
   export.ts              one delta, two file formats
   snapshots.ts           version history: periodic states, and restoring one

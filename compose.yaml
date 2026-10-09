@@ -23,6 +23,14 @@ services:
       # Version history: how often a point is kept, and how many per document.
       - SNAPSHOT_EVERY_MS=${SNAPSHOT_EVERY_MS:-600000}
       - SNAPSHOT_KEEP=${SNAPSHOT_KEEP:-20}
+      # The password for /admin. Leave it empty and the admin screen does not
+      # exist. Limits changed there are kept in the database and outrank the
+      # values below, which are only where each one starts.
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-}
+      - REQUESTS_PER_MINUTE=${REQUESTS_PER_MINUTE:-300}
+      # Totals in bytes; 0 is no limit.
+      - ATTACHMENT_QUOTA_BYTES=${ATTACHMENT_QUOTA_BYTES:-0}
+      - STORAGE_QUOTA_BYTES=${STORAGE_QUOTA_BYTES:-0}
     volumes:
       - together-data:/app/data
     expose:

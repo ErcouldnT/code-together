@@ -50,6 +50,7 @@ export function uploadAttachment(
     request.onload = () => {
       if (request.status === 201) resolve(JSON.parse(request.responseText) as Attachment);
       else if (request.status === 413) reject(new AttachmentError(t("attach.fileTooLarge", { name: file.name })));
+      else if (request.status === 507) reject(new AttachmentError(t("attach.quota", { name: file.name })));
       else reject(new AttachmentError(t("upload.failedStatus", { status: request.status })));
     };
     request.onerror = () => reject(new AttachmentError(t("upload.dropped")));

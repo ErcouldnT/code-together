@@ -4,6 +4,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import { pinoHttp } from "pino-http";
 import { accessRoutes, allowed } from "./access.js";
+import { adminRoutes } from "./admin.js";
 import { attachmentRoutes } from "./attachments.js";
 import { closeDatabase, runMigrations } from "./db/index.js";
 import { contentsOf, deleteStaleDocuments, referencedUploads, storedContents } from "./documents.js";
@@ -11,8 +12,10 @@ import { env, isProduction } from "./env.js";
 import { expireDue, expiryRoutes, pruneTombstones } from "./expiry.js";
 import { toHtmlDocument, toMarkdown } from "./export.js";
 import { closeAllRooms, peekRoom, ROOM_ID, roomStats } from "./rooms.js";
+import { limits } from "./settings.js";
 import { listSnapshots, snapshotContents } from "./snapshots.js";
 import { attachSockets, roomEvents } from "./sockets.js";
+import { noteStored, storageRoom } from "./storage.js";
 import { mimeForStoredName, pathForStoredName, storeUpload, sweepUploads } from "./uploads.js";
 
 runMigrations();
@@ -59,7 +62,8 @@ app.get("/healthz", (_req, res) => {
 app.use(
   rateLimit({
     windowMs: 60_000,
-    limit: 300,
+    // read per request, so the admin screen changes it without a restart
+    limit: () => limits().requestsPerMinute,
     standardHeaders: "draft-7",
     legacyHeaders: false,
   }),
@@ -77,7 +81,17 @@ app.use(
  */
 app.post(
   "/api/uploads",
-  express.raw({ type: "*/*", limit: env.maxUploadBytes }),
+  (req, res, next) => {
+    // Refused before a byte is read when the disk budget is already spent.
+    const declared = Number(req.headers["content-length"]) || 0;
+    if (declared > storageRoom()) {
+      res.set("connection", "close").status(507).json({ error: "quota" });
+      return;
+    }
+    // A parser per request, because its size limit is fixed at creation and
+    // this one can change from the admin screen.
+    express.raw({ type: "*/*", limit: limits().maxUploadBytes })(req, res, next);
+  },
   (req, res) => {
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
       res.status(400).json({ error: "empty" });
@@ -90,6 +104,7 @@ app.post(
       res.status(415).json({ error: "not-an-image" });
       return;
     }
+    noteStored("pictures", stored.bytes);
     res.json({ url: stored.url, bytes: stored.bytes });
   },
 );
@@ -120,6 +135,9 @@ app.get("/uploads/:name", (req, res) => {
 
 // Making a named document, and unlocking one with a password.
 app.use(accessRoutes());
+
+// The admin screen's API — absent unless ADMIN_TOKEN is set.
+app.use(adminRoutes());
 
 // Documents that delete themselves. The events reach the socket server
 // lazily, as the attachment notifications below do.

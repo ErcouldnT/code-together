@@ -1,7 +1,11 @@
 import { customAlphabet } from "nanoid";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Editor from "./Editor";
 import "./assets/App.css";
+
+// Its own chunk: almost nobody who opens a document ever opens this.
+const AdminPage = lazy(() => import("./admin/AdminPage"));
 
 // https://zelark.github.io/nano-id-cc — 5 chars is short enough to read out loud.
 const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -12,6 +16,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to={`/${nanoid()}`} replace />} />
+        <Route path="/admin" element={<Suspense fallback={null}><AdminPage /></Suspense>} />
         <Route path="/:id" element={<Editor />} />
       </Routes>
     </BrowserRouter>

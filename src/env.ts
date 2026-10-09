@@ -58,6 +58,21 @@ export const env = {
    */
   snapshotEveryMs: int(process.env.SNAPSHOT_EVERY_MS, 10 * 60 * 1000),
   snapshotKeep: int(process.env.SNAPSHOT_KEEP, 20),
+
+  /**
+   * The password for /admin. Unset — the default — and the admin screen does
+   * not exist: every admin route answers 404, so there is nothing to guess at.
+   */
+  adminToken: process.env.ADMIN_TOKEN ?? "",
+  /** HTTP requests one address may make per minute, outside the socket. */
+  requestsPerMinute: int(process.env.REQUESTS_PER_MINUTE, 300),
+  /**
+   * The most a single document's attachments may add up to, and the most
+   * every stored file together may — pictures and attachments both. 0 is no
+   * limit, which is the default for each.
+   */
+  attachmentQuotaBytes: int(process.env.ATTACHMENT_QUOTA_BYTES, 0),
+  storageQuotaBytes: int(process.env.STORAGE_QUOTA_BYTES, 0),
 } as const;
 
 export const isProduction = env.nodeEnv === "production";

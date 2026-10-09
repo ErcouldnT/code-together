@@ -19,6 +19,7 @@ import { db } from "./db/index.js";
 import { documents } from "./db/schema.js";
 import { isProduction } from "./env.js";
 import { clearTombstone, isTombstoned } from "./expiry.js";
+import { limits } from "./settings.js";
 import { ROOM_ID } from "./rooms.js";
 
 /**
@@ -200,7 +201,7 @@ export function accessRoutes(): Router {
   // own far below the app-wide one. Per address, per minute.
   const guesses = rateLimit({
     windowMs: 60_000,
-    limit: 10,
+    limit: () => limits().unlockAttemptsPerMinute,
     standardHeaders: "draft-7",
     legacyHeaders: false,
   });
@@ -208,7 +209,7 @@ export function accessRoutes(): Router {
   // Not a guess, but every one is a row that never goes away on its own.
   const creations = rateLimit({
     windowMs: 60_000,
-    limit: 30,
+    limit: () => limits().documentCreationsPerMinute,
     standardHeaders: "draft-7",
     legacyHeaders: false,
   });

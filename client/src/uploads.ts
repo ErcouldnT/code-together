@@ -74,6 +74,7 @@ export async function upload(file: File): Promise<string> {
   });
 
   if (response.status === 413) throw new UploadError(t("upload.tooLarge"));
+  if (response.status === 507) throw new UploadError(t("upload.quota"));
   if (response.status === 415) throw new UploadError(t("upload.notImage"));
   if (!response.ok) throw new UploadError(t("upload.failedStatus", { status: response.status }));
 

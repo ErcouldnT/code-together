@@ -14,6 +14,7 @@ import type {
 import { accessFor } from "./access.js";
 import { env } from "./env.js";
 import { expireDocument, isOverdue, isTombstoned, type ExpiryEvents } from "./expiry.js";
+import { limits } from "./settings.js";
 import { joinRoom, leaveRoom, ROOM_ID, whenSaved, type Room } from "./rooms.js";
 
 interface SocketData {
@@ -29,7 +30,7 @@ interface SocketData {
    * closed tab leaves a ghost sitting in the document forever.
    */
   awarenessClients: Set<number>;
-  /** fixed-window counter behind `env.updateBurst` */
+  /** fixed-window counter behind the `updateBurst` limit */
   updates: number;
   windowStart: number;
 }
@@ -39,12 +40,13 @@ type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<strin
 
 function withinRate(socket: AppSocket): boolean {
   const now = Date.now();
-  if (now - socket.data.windowStart >= env.updateWindowMs) {
+  const { updateBurst, updateWindowMs } = limits();
+  if (now - socket.data.windowStart >= updateWindowMs) {
     socket.data.windowStart = now;
     socket.data.updates = 0;
   }
   socket.data.updates += 1;
-  return socket.data.updates <= env.updateBurst;
+  return socket.data.updates <= updateBurst;
 }
 
 /**
@@ -73,7 +75,7 @@ function ingest(socket: AppSocket, update: unknown, ack?: () => void): void {
   }
   if (bytes.byteLength > env.maxUpdateBytes) return reject("too-large");
   if (!withinRate(socket)) return reject("too-fast");
-  if (room.bytes > env.maxDocumentBytes) return reject("document-full");
+  if (room.bytes > limits().maxDocumentBytes) return reject("document-full");
 
   try {
     Y.applyUpdate(room.doc, bytes, socket.id);
@@ -141,7 +143,7 @@ export function attachSockets(httpServer: HttpServer): IoServer {
       socket.data.canWrite = access.write;
 
       const room = joinRoom(documentId, socket.id);
-      if (room.bytes > env.maxDocumentBytes) {
+      if (room.bytes > limits().maxDocumentBytes) {
         leaveRoom(documentId, socket.id);
         socket.emit("join-error", "too-large");
         return;

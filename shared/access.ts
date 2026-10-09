@@ -70,9 +70,10 @@ export const MAX_PASSWORD_LENGTH = 200;
 
 /**
  * Names the server already answers at the top level. A document called
- * `healthz` would be shadowed by the health check and never open.
+ * `healthz` would be shadowed by the health check and never open, and one
+ * called `admin` by the admin screen.
  */
-const RESERVED = new Set(["api", "assets", "healthz", "socket.io", "uploads"]);
+const RESERVED = new Set(["admin", "api", "assets", "healthz", "socket.io", "uploads"]);
 
 type Slugify = (
   input: string,
