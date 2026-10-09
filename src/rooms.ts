@@ -1,6 +1,8 @@
 import { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
+import { recordEdits, tally, type EditTally } from "./activity.js";
 import { loadDocument, saveDocument } from "./documents.js";
+import type { Origin } from "./geo.js";
 import { takeSnapshot } from "./snapshots.js";
 
 /**
@@ -47,6 +49,8 @@ export interface Room {
 
 interface RoomState extends Room {
   saveTimer: NodeJS.Timeout | null;
+  /** who has changed it since the last save — see activity.ts */
+  edits: Map<string, EditTally>;
   dirty: boolean;
   /** callers waiting for the next write to disk — see `whenSaved` */
   waiting: (() => void)[];
@@ -65,6 +69,10 @@ function flush(room: RoomState): void {
   }
   room.dirty = false;
   saveDocument(room.id, room.doc);
+  if (room.edits.size > 0) {
+    recordEdits(room.id, room.edits);
+    room.edits.clear();
+  }
   room.bytes = Y.encodeStateAsUpdate(room.doc).byteLength;
   // Hangs off the save rather than a timer of its own: a document nobody is
   // editing is never saved, so it never accumulates identical snapshots.
@@ -107,8 +115,8 @@ function scheduleSave(room: RoomState): void {
   room.saveTimer.unref?.();
 }
 
-function openRoom(id: string): RoomState {
-  const { doc, seeded } = loadDocument(id);
+function openRoom(id: string, opener?: Origin): RoomState {
+  const { doc, seeded } = loadDocument(id, opener);
   const room: RoomState = {
     id,
     doc,
@@ -116,6 +124,7 @@ function openRoom(id: string): RoomState {
     members: new Set(),
     bytes: Y.encodeStateAsUpdate(doc).byteLength,
     saveTimer: null,
+    edits: new Map(),
     dirty: false,
     waiting: [],
   };
@@ -131,8 +140,8 @@ function openRoom(id: string): RoomState {
   return room;
 }
 
-export function joinRoom(id: string, socketId: string): Room {
-  const room = rooms.get(id) ?? openRoom(id);
+export function joinRoom(id: string, socketId: string, origin?: Origin): Room {
+  const room = rooms.get(id) ?? openRoom(id, origin);
   room.members.add(socketId);
   return room;
 }
@@ -175,6 +184,12 @@ export function discardRoom(id: string): void {
  */
 export function peekRoom(id: string): Room | undefined {
   return rooms.get(id);
+}
+
+/** Count one change from `origin`, to be written with the next save. */
+export function noteEdit(room: Room, origin: Origin): void {
+  const state = rooms.get(room.id);
+  if (state) tally(state.edits, origin);
 }
 
 /** Who is in each open room, by room id. */

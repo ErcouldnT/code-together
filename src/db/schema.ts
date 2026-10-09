@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { blob, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type { LegacyDocumentData } from "../../shared/events.js";
 
 export const documents = sqliteTable(
@@ -57,9 +57,21 @@ export const documents = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
+    /**
+     * Where the document was made from, and where it was last changed from,
+     * for the admin screen. Null for documents older than the columns, and
+     * a country is null for an address no country owns (a private network).
+     * Every editor, not only the last, is in `document_editors`.
+     */
+    createdIp: text("created_ip"),
+    createdCountry: text("created_country"),
+    editedIp: text("edited_ip"),
+    editedCountry: text("edited_country"),
+    editedAt: integer("edited_at", { mode: "timestamp_ms" }),
   },
   (table) => [
     index("documents_updated_at_idx").on(table.updatedAt),
+    index("documents_created_at_idx").on(table.createdAt),
     index("documents_expires_at_idx").on(table.expiresAt),
   ],
 );
@@ -128,6 +140,32 @@ export const documentAttachments = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
   },
   (table) => [index("document_attachments_document_idx").on(table.documentId, table.createdAt)],
+);
+
+/**
+ * Everyone who has changed a document, one row per address: how many
+ * changes, and when the first and the latest were. Gathered in memory while
+ * the room is open and written with each save, so typing is not a write per
+ * keystroke. Goes with the document when the document goes.
+ */
+export const documentEditors = sqliteTable(
+  "document_editors",
+  {
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    ip: text("ip").notNull(),
+    country: text("country"),
+    /** updates received from this address — a burst of typing, not a character */
+    edits: integer("edits").notNull().default(0),
+    firstAt: integer("first_at", { mode: "timestamp_ms" }).notNull(),
+    lastAt: integer("last_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.documentId, table.ip] }),
+    index("document_editors_ip_idx").on(table.ip),
+    index("document_editors_country_idx").on(table.country),
+  ],
 );
 
 export type Document = typeof documents.$inferSelect;

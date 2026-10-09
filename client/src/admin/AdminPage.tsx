@@ -12,7 +12,8 @@ import {
 } from "@shared/admin";
 import { language, t } from "../i18n";
 import CleanupCard from "./CleanupCard";
-import DirectoryCard from "./DirectoryCard";
+import DirectoryCard, { type Preset } from "./DirectoryCard";
+import StatsCard from "./StatsCard";
 
 /**
  * /admin: how the server is doing, and the limits it enforces.
@@ -220,6 +221,8 @@ interface DashboardProps {
 
 function Dashboard({ overview, onRefresh, onSaved }: DashboardProps) {
   const { stats } = overview;
+  // a country or address clicked in the statistics, for the list to show
+  const [preset, setPreset] = useState<Preset | null>(null);
   return (
     <>
       <section className="admin-card">
@@ -244,7 +247,8 @@ function Dashboard({ overview, onRefresh, onSaved }: DashboardProps) {
         </dl>
       </section>
 
-      <DirectoryCard />
+      <StatsCard onFilter={(filter) => setPreset({ ...filter, nonce: Date.now() })} />
+      <DirectoryCard preset={preset} />
 
       <LimitsForm
         title={t("admin.rateLimits")}

@@ -125,17 +125,64 @@ export interface DirectoryEntry {
   bytes: number;
   /** people in the room right now */
   editors: number;
+  /** where it was made from; null for documents older than the record */
+  createdIp: string | null;
+  createdCountry: string | null;
+  /** where the latest change came from, and when */
+  editedIp: string | null;
+  editedCountry: string | null;
+  editedAt: number | null;
 }
 
 export const DIRECTORY_SORTS = ["updated", "created", "size"] as const;
 export type DirectorySort = (typeof DIRECTORY_SORTS)[number];
+
+/**
+ * none: no password; locked: any password; view: a password to read it;
+ * edit: anyone reads, only the password writes — read-only to visitors.
+ */
+export const DIRECTORY_PROTECTIONS = ["all", "none", "locked", "view", "edit"] as const;
+export type DirectoryProtection = (typeof DIRECTORY_PROTECTIONS)[number];
+
 export const DIRECTORY_PAGE = 25;
 
-/** `GET /api/admin/documents?q=&sort=&open=&offset=` */
+/** `GET /api/admin/documents?q=&sort=&open=&protection=&ip=&country=&offset=` */
 export interface DirectoryPage {
   total: number;
   offset: number;
   documents: DirectoryEntry[];
+  /** every country anything was made or changed from, for the filter */
+  countries: string[];
+}
+
+/** One address that has changed a document. */
+export interface EditorEntry {
+  ip: string;
+  country: string | null;
+  edits: number;
+  firstAt: number;
+  lastAt: number;
+}
+
+/** `GET /api/admin/documents/:id` */
+export interface DocumentDetail {
+  editors: EditorEntry[];
+  characters: number;
+  words: number;
+  snapshots: number;
+  attachments: { files: number; bytes: number };
+}
+
+/** `GET /api/admin/stats` */
+export interface AdminStats {
+  protection: { open: number; view: number; edit: number };
+  /** the last 30 days, oldest first, every day present */
+  createdPerDay: { day: string; count: number }[];
+  /** per country, most active first; null is a private or unknown address */
+  countries: { country: string | null; created: number; documents: number; edits: number; ips: number }[];
+  ips: { ip: string; country: string | null; created: number; documents: number; edits: number; lastAt: number | null }[];
+  totals: { ips: number; countries: number; edits: number; unknownOrigin: number };
+  ages: { oldest: number | null; newest: number | null; medianDays: number | null; lastEdit: number | null };
 }
 
 /** `PUT /api/admin/limits` — a subset; null puts a limit back to its default. */

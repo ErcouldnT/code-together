@@ -3,15 +3,15 @@ import { resolve } from "node:path";
 import { count } from "drizzle-orm";
 import express, { type NextFunction, type Request, type Response, type Router } from "express";
 import rateLimit from "express-rate-limit";
-import { ABANDONED_CHOICES, DIRECTORY_SORTS, type AdminOverview, type CleanupPreview, type LimitsUpdate } from "../shared/admin.js";
+import { ABANDONED_CHOICES, DIRECTORY_PROTECTIONS, DIRECTORY_SORTS, type AdminOverview, type CleanupPreview, type LimitsUpdate } from "../shared/admin.js";
 import { ADMIN_COOKIE, adminSignature, isAdminCookie, same } from "./admin-session.js";
 import { deleteDocuments, findAbandoned, findEmpty, preview } from "./cleanup.js";
 import { db } from "./db/index.js";
 import { documents, expiredDocuments } from "./db/schema.js";
-import { listDocuments } from "./directory.js";
+import { adminStats, documentDetail, listDocuments } from "./directory.js";
 import { env, isProduction } from "./env.js";
 import { countExpiring } from "./expiry.js";
-import { roomStats } from "./rooms.js";
+import { ROOM_ID, roomStats } from "./rooms.js";
 import { defaultLimits, limits, updateLimits } from "./settings.js";
 import { storageUsage } from "./storage.js";
 
@@ -125,13 +125,28 @@ export function adminRoutes(): Router {
   });
 
   router.get("/api/admin/documents", signedIn, (req, res) => {
-    const { q, sort, open, offset } = req.query;
+    const { q, sort, open, protection, ip, country, offset } = req.query;
+    const text = (value: unknown, max: number) => (typeof value === "string" ? value.slice(0, max) : "");
     res.set("cache-control", "no-store").json(listDocuments({
-      query: typeof q === "string" ? q.slice(0, 200) : "",
+      query: text(q, 200),
       sort: DIRECTORY_SORTS.find((choice) => choice === sort) ?? "updated",
       openOnly: open === "1",
+      protection: DIRECTORY_PROTECTIONS.find((choice) => choice === protection) ?? "all",
+      ip: text(ip, 64),
+      country: /^[A-Za-z]{2}$/.test(text(country, 2)) ? text(country, 2) : "",
       offset: Number(offset) || 0,
     }));
+  });
+
+  router.get("/api/admin/documents/:id", signedIn, (req, res) => {
+    const id = String(req.params.id);
+    const detail = ROOM_ID.test(id) ? documentDetail(id) : null;
+    if (!detail) res.sendStatus(404);
+    else res.set("cache-control", "no-store").json(detail);
+  });
+
+  router.get("/api/admin/stats", signedIn, (_req, res) => {
+    res.set("cache-control", "no-store").json(adminStats());
   });
 
   /*

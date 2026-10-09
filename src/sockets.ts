@@ -15,7 +15,8 @@ import { accessFor } from "./access.js";
 import { env } from "./env.js";
 import { expireDocument, isOverdue, isTombstoned, type ExpiryEvents } from "./expiry.js";
 import { limits } from "./settings.js";
-import { joinRoom, leaveRoom, ROOM_ID, whenSaved, type Room } from "./rooms.js";
+import { originOf, type Origin } from "./geo.js";
+import { joinRoom, leaveRoom, noteEdit, ROOM_ID, whenSaved, type Room } from "./rooms.js";
 
 interface SocketData {
   room?: Room;
@@ -30,6 +31,8 @@ interface SocketData {
    * closed tab leaves a ghost sitting in the document forever.
    */
   awarenessClients: Set<number>;
+  /** the address and country this socket connected from */
+  origin: Origin;
   /** fixed-window counter behind the `updateBurst` limit */
   updates: number;
   windowStart: number;
@@ -77,6 +80,13 @@ function ingest(socket: AppSocket, update: unknown, ack?: () => void): void {
   if (!withinRate(socket)) return reject("too-fast");
   if (room.bytes > limits().maxDocumentBytes) return reject("document-full");
 
+  // Whether it changed anything: every join sends an update, usually empty,
+  // and only a real change counts as an edit for the admin screen.
+  let changed = false;
+  const mark = () => {
+    changed = true;
+  };
+  room.doc.on("update", mark);
   try {
     Y.applyUpdate(room.doc, bytes, socket.id);
   }
@@ -84,6 +94,10 @@ function ingest(socket: AppSocket, update: unknown, ack?: () => void): void {
     // a malformed update is a broken or hostile client, not a server error
     return reject("too-large");
   }
+  finally {
+    room.doc.off("update", mark);
+  }
+  if (changed) noteEdit(room, socket.data.origin);
   socket.broadcast.to(room.id).emit("update", bytes);
   // Only once it is on disk. A refused update is never acknowledged at all:
   // the client is meant to go on considering it unsaved, because it is.
@@ -103,6 +117,7 @@ export function attachSockets(httpServer: HttpServer): IoServer {
     socket.data.canWrite = false;
     socket.data.updates = 0;
     socket.data.windowStart = Date.now();
+    socket.data.origin = originOf(socket.handshake.headers, socket.handshake.address);
 
     /**
      * Remembers which awareness client ids belong to this socket.
@@ -142,7 +157,7 @@ export function attachSockets(httpServer: HttpServer): IoServer {
       }
       socket.data.canWrite = access.write;
 
-      const room = joinRoom(documentId, socket.id);
+      const room = joinRoom(documentId, socket.id, socket.data.origin);
       if (room.bytes > limits().maxDocumentBytes) {
         leaveRoom(documentId, socket.id);
         socket.emit("join-error", "too-large");

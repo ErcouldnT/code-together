@@ -20,6 +20,7 @@ import { db } from "./db/index.js";
 import { documents } from "./db/schema.js";
 import { isProduction } from "./env.js";
 import { clearTombstone, isTombstoned } from "./expiry.js";
+import { originOf, type Origin } from "./geo.js";
 import { limits } from "./settings.js";
 import { ROOM_ID } from "./rooms.js";
 
@@ -166,6 +167,7 @@ function createDocument(
   password: string,
   protect: Protection,
   expiresIn: number | null,
+  creator: Origin,
 ): { id: string; passwordHash: string | null } | { error: CreateDocumentError } {
   const id = slugOf(name, slugify);
   if (!id || !ROOM_ID.test(id)) return { error: "bad-name" };
@@ -190,6 +192,8 @@ function createDocument(
       passwordHash,
       protect: password ? protect : null,
       expiresAt: expiresIn === null ? null : new Date(Date.now() + expiresIn),
+      createdIp: creator.ip,
+      createdCountry: creator.country,
     })
     .onConflictDoNothing({ target: documents.id })
     .run();
@@ -227,7 +231,7 @@ export function accessRoutes(): Router {
     const protect = isProtection(body.protect) ? body.protect : "view";
     const expiresIn = body.expiresIn === undefined || body.expiresIn === null ? null : Number(body.expiresIn);
 
-    const created = createDocument(name, password, protect, expiresIn);
+    const created = createDocument(name, password, protect, expiresIn, originOf(req.headers, req.socket.remoteAddress));
     if ("error" in created) {
       res.status(created.error === "taken" ? 409 : 400).json(created);
       return;

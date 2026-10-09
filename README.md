@@ -114,14 +114,29 @@ the moment it is enforced. Changed limits are kept in the database and
 outrank the environment, which only says where each one starts; "Use
 default" hands one back to the environment.
 
-Under the status sits a list of **every document**, newest change first or
-sorted by when it was made or by size, searchable by title or address and
-narrowed to the ones open right now if you like. Each links to the document in
-a new tab, with who is in it, whether it has a password and when it deletes
-itself. Signed in, the admin opens every document, password or not: the
-admin cookie is sent with every request to the site, and the access check
-lets it through as it would the password's own. A visitor without it is
-asked as before.
+Signed in, the admin opens **every document**, password or not: the admin
+cookie is sent with every request to the site, and the access check lets it
+through as it would the password's own. A visitor without it is asked as
+before.
+
+**Statistics** show where documents are made and changed from — by country
+and by IP address — how many are made a day over the last month, how they
+are protected, and how old they are. The **document list** below links to
+every document in a new tab and filters by title or address, by password
+(none, any, to view, or read-only: a password to edit), by country, and by
+the start of an IP address; any country or address on the screen is a button
+that narrows the list to it. Each document says, with
+[date-fns](https://date-fns.org), how long ago it was made and last edited,
+where from, and opens to show everyone who changed it.
+
+Recording starts with this version, so older documents show as not recorded.
+The address is the last hop of `X-Forwarded-For` — the one Traefik appends —
+and the country is Cloudflare's `CF-IPCountry` when Cloudflare is in front,
+otherwise a lookup in the GeoLite2 country table bundled with
+[geoip-country](https://github.com/sapics/geoip-country), on disk, with no
+request leaving the server. Changes are counted in memory per address and
+written with each save, not per keystroke. IP addresses are personal data:
+they are kept for as long as the document is, and deleted with it.
 
 The screen also clears out documents nobody will come back to. **Empty**
 ones — no text, title, attachment or password, at least an hour old — are
@@ -157,7 +172,9 @@ src/                     Express + Socket.io server
   settings.ts            the limits as they stand, changeable without a restart
   storage.ts             how much the stored files take up, for the quotas
   cleanup.ts             finding and deleting empty and abandoned documents
-  directory.ts           every document, a page at a time, for the admin screen
+  directory.ts           every document, filtered a page at a time, and the statistics
+  activity.ts            where documents are made and changed from
+  geo.ts                 a request's address and country
   admin-session.ts       the admin's cookie, which also opens every document
   documents.ts           load and save a room as a Yjs document
   export.ts              one delta, two file formats
@@ -273,6 +290,10 @@ Because state lives in one SQLite file and in-process Socket.io rooms, run **one
   * [x] Documents that delete themselves after a set time
   * [x] Share by QR code
   * [x] Admin screen: live rate limits, upload quotas, clearing out empty and abandoned documents
+  * [x] Admin statistics: where documents are made and edited from, by country and IP, with filters
   * [ ] Video conference with webRTC
+
+This product includes GeoLite2 data created by MaxMind, available from
+[maxmind.com](https://www.maxmind.com), under CC BY-SA 4.0.
 
 &copy; 2021 Ercode

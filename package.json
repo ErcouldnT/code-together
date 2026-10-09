@@ -44,6 +44,7 @@
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
+    "geoip-country": "^5.0.202610070241",
     "pino-http": "^11.0.0",
     "slugify": "^1.6.9",
     "socket.io": "^4.8.3",

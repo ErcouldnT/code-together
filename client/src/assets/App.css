@@ -1674,6 +1674,9 @@ button.expiry-badge {
 
 .admin-main {
   display: grid;
+  /* not auto: a wide table would stretch the column past the screen instead
+     of scrolling inside its own box */
+  grid-template-columns: minmax(0, 1fr);
   max-width: 60rem;
   gap: 1rem;
   margin: 0 auto;
@@ -1923,7 +1926,7 @@ button.expiry-badge {
   cursor: default;
 }
 
-/* The document directory: a search row, then one line per document. */
+/* The document directory: search and filter rows, then one block per document. */
 .admin-directory-controls {
   display: flex;
   flex-wrap: wrap;
@@ -1934,11 +1937,18 @@ button.expiry-badge {
 
 .admin-directory-controls select {
   width: auto;
+  max-width: 100%;
 }
 
 .admin-directory-search {
   flex: 1 1 14rem;
   min-width: 0;
+}
+
+.admin-ip-filter {
+  flex: 0 1 13rem;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
 }
 
 .admin-check {
@@ -1956,13 +1966,19 @@ button.expiry-badge {
 }
 
 .admin-doc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.3rem;
+  border-top: 1px solid var(--border);
+  padding: 0.65rem 0;
+}
+
+.admin-doc-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.25rem 1rem;
-  border-top: 1px solid var(--border);
-  padding: 0.55rem 0;
 }
 
 .admin-doc-link {
@@ -1995,6 +2011,7 @@ button.expiry-badge {
   font-size: 0.8rem;
 }
 
+.admin-doc-badges,
 .admin-doc-meta {
   display: flex;
   flex-wrap: wrap;
@@ -2003,6 +2020,10 @@ button.expiry-badge {
   color: var(--muted);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
+}
+
+.admin-doc-badges {
+  gap: 0.3rem;
 }
 
 .admin-badge {
@@ -2015,6 +2036,191 @@ button.expiry-badge {
 .admin-badge-live {
   border-color: #15803d;
   color: #15803d;
+}
+
+.admin-doc-origins {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.admin-doc-origins > div {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.admin-doc-origins dt {
+  color: var(--muted);
+}
+
+.admin-doc-origins dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.admin-doc-more {
+  margin-left: auto;
+  font-size: 0.8rem;
+}
+
+.admin-origin {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.4rem;
+}
+
+/* a country or address that narrows the list when clicked */
+.admin-chip {
+  border: none;
+  border-radius: 4px;
+  background: none;
+  padding: 0 0.2rem;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-chip:hover,
+.admin-chip:focus-visible {
+  background-color: var(--code-bg);
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.admin-ip {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-detail {
+  border-radius: 8px;
+  background-color: var(--code-bg);
+  margin-top: 0.3rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.admin-detail-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.82rem;
+}
+
+/* Tables scroll inside themselves on a phone rather than widening the page. */
+.admin-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.35rem 0.5rem 0.35rem 0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-table th {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.admin-table .admin-num,
+.admin-num {
+  text-align: right;
+}
+
+.admin-gap {
+  margin-top: 1.25rem;
+}
+
+/* Statistics: the chart beside the password shares on a desk, stacked on a phone. */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1rem 1.5rem;
+  margin-top: 1.25rem;
+}
+
+.admin-chart {
+  margin: 0;
+}
+
+.admin-chart-bars {
+  display: flex;
+  height: 7rem;
+  align-items: flex-end;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-chart-bar {
+  display: flex;
+  height: 100%;
+  flex: 1;
+  align-items: flex-end;
+}
+
+.admin-chart-fill {
+  width: 100%;
+  min-height: 1px;
+  border-radius: 2px 2px 0 0;
+  background-color: var(--accent);
+}
+
+.admin-chart-bar:hover .admin-chart-fill {
+  opacity: 0.75;
+}
+
+.admin-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.admin-share {
+  margin-bottom: 0.65rem;
+}
+
+.admin-share-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+  font-size: 0.82rem;
+}
+
+.admin-share-track {
+  overflow: hidden;
+  height: 0.45rem;
+  border-radius: 999px;
+  background-color: var(--code-bg);
+}
+
+.admin-share-fill {
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -2039,7 +2245,17 @@ button.expiry-badge {
     flex-basis: 100%;
   }
 
-  .admin-directory-controls select {
-    flex: 1 1 auto;
+  .admin-directory-controls select,
+  .admin-ip-filter {
+    flex: 1 1 100%;
+  }
+
+  .admin-doc-origins {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .admin-doc-more {
+    margin-left: 0;
   }
 }

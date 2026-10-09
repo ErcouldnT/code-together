@@ -4,6 +4,7 @@ import type { DeltaOp, LegacyDocumentData } from "../shared/events.js";
 import { META_KEY, TEXT_KEY } from "../shared/ydoc.js";
 import { db } from "./db/index.js";
 import { documents } from "./db/schema.js";
+import type { Origin } from "./geo.js";
 import { storedNameIn, storeUpload } from "./uploads.js";
 
 /** What a room created from now on writes into the legacy column. */
@@ -31,14 +32,14 @@ export interface LoadedDocument {
  *
  * Three cases, and the third is the whole reason the legacy column survives:
  *
- *  - no row: a new room, empty document;
+ *  - no row: a new room, empty document, made by `creator`;
  *  - `ystate` present: the normal path, one `applyUpdate`;
  *  - `ystate` empty but `data` populated: a room that predates the migration,
  *    opened for the first time since. Its Quill delta is replayed into the
  *    document once and reported as `seeded`. Nothing is deleted, so an
  *    interrupted seed simply happens again next time.
  */
-export function loadDocument(id: string): LoadedDocument {
+export function loadDocument(id: string, creator?: Origin): LoadedDocument {
   const doc = new Y.Doc();
   const row = db.select().from(documents).where(eq(documents.id, id)).get();
 
@@ -46,7 +47,7 @@ export function loadDocument(id: string): LoadedDocument {
     // Concurrent first joins race here; whoever loses keeps its empty doc and
     // syncs against the winner's like any other peer.
     db.insert(documents)
-      .values({ id, data: EMPTY_DELTA })
+      .values({ id, data: EMPTY_DELTA, createdIp: creator?.ip, createdCountry: creator?.country })
       .onConflictDoNothing({ target: documents.id })
       .run();
     return { doc, seeded: false };
