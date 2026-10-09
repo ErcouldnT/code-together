@@ -156,6 +156,18 @@ describe("Markdown export", () => {
     assert.equal(md, "```\nconst a = 1;\nconst b = 2;\n```\nafter\n");
   });
 
+  it("names a chosen language on the fence, and only a chosen one", () => {
+    const md = toMarkdown([
+      { insert: "print(1)" },
+      { insert: "\n", attributes: { "code-block": "python" } },
+      { insert: "guess me" },
+      { insert: "\n", attributes: { "code-block": "plain" } },
+      { insert: "x" },
+      { insert: "\n", attributes: { "code-block": "evil\n```" } },
+    ]);
+    assert.equal(md, "```python\nprint(1)\n```\n```\nguess me\nx\n```\n");
+  });
+
   it("does not format inside a code block", () => {
     const md = toMarkdown([
       { insert: "*not bold*", attributes: { bold: true } },

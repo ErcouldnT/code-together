@@ -107,6 +107,9 @@ const en = {
   "problem.read-only": "This document is read-only; your change was not saved.",
 
   "editor.placeholder": "Start typing, or paste a screenshot…",
+  "code.auto": "Auto",
+  "code.autoDetected": "Auto · {language}",
+  "code.plain": "Plain text",
 
   "upload.tooLarge": "That picture is too large.",
   "upload.notImage": "That file is not an image we can store.",
@@ -224,6 +227,9 @@ const tr: Dictionary = {
   "problem.read-only": "Bu belge salt okunur; değişikliğin kaydedilmedi.",
 
   "editor.placeholder": "Yazmaya başla ya da bir ekran görüntüsü yapıştır…",
+  "code.auto": "Otomatik",
+  "code.autoDetected": "Otomatik · {language}",
+  "code.plain": "Düz metin",
 
   "upload.tooLarge": "Bu resim çok büyük.",
   "upload.notImage": "Bu dosya saklayabildiğimiz türde bir resim değil.",
@@ -338,6 +344,9 @@ const ru: Dictionary = {
   "problem.read-only": "Документ доступен только для чтения; изменение не сохранено.",
 
   "editor.placeholder": "Начните печатать или вставьте скриншот…",
+  "code.auto": "Авто",
+  "code.autoDetected": "Авто · {language}",
+  "code.plain": "Обычный текст",
 
   "upload.tooLarge": "Изображение слишком большое.",
   "upload.notImage": "Этот файл — не изображение, которое можно сохранить.",

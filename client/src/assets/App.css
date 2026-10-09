@@ -14,6 +14,18 @@
   --shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
   --swatch-outline: #000000;
 
+  /* code blocks: GitHub's light palette */
+  --codeblock-bg: #f6f8fa;
+  --codeblock-text: #1f2328;
+  --tok-comment: #6e7781;
+  --tok-keyword: #cf222e;
+  --tok-string: #0a3069;
+  --tok-number: #0550ae;
+  --tok-title: #8250df;
+  --tok-tag: #116329;
+  --tok-add-bg: #dafbe1;
+  --tok-del-bg: #ffebe9;
+
   /* The top bar's height, so the sticky toolbar knows where to stop and the
      editor knows how much of the viewport is already spoken for. */
   --topbar-h: 2.5rem;
@@ -33,6 +45,17 @@
     --muted: rgba(255, 255, 255, 0.55);
     --shadow: 0 0 6px 0 rgba(0, 0, 0, 0.7);
     --swatch-outline: #ffffff;
+
+    --codeblock-bg: #161b22;
+    --codeblock-text: #e6edf3;
+    --tok-comment: #8b949e;
+    --tok-keyword: #ff7b72;
+    --tok-string: #a5d6ff;
+    --tok-number: #79c0ff;
+    --tok-title: #d2a8ff;
+    --tok-tag: #7ee787;
+    --tok-add-bg: #033a16;
+    --tok-del-bg: #67060c;
   }
 }
 
@@ -168,6 +191,121 @@ body {
 
 .container .ql-snow .ql-editor code {
   background-color: var(--code-bg);
+}
+
+/*
+ * Code blocks. Quill's snow theme paints them Monokai-dark whatever the page
+ * is doing; these follow the page instead — GitHub's light palette on a light
+ * page, its dark one on a dark page. The token classes are highlight.js's,
+ * written by the syntax module as `hljs-<scope>`.
+ */
+.container .ql-snow .ql-editor .ql-code-block-container {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--codeblock-bg);
+  padding: 0.6rem 0.8rem;
+  color: var(--codeblock-text);
+  font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-x: auto;
+}
+
+/* The language picker, top right of the block. Quiet until it is wanted. */
+.container .ql-snow .ql-editor .ql-code-block-container select.ql-ui {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background-color: transparent;
+  padding: 0.1rem 0.2rem;
+  color: var(--muted);
+  font: 0.72rem/1.2 system-ui, sans-serif;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.container .ql-snow .ql-editor .ql-code-block-container:hover select.ql-ui,
+.container .ql-snow .ql-editor .ql-code-block-container select.ql-ui:focus {
+  border-color: var(--border);
+  background-color: var(--panel-bg);
+  opacity: 1;
+}
+
+.container .ql-snow .ql-editor .ql-code-block-container select.ql-ui:disabled {
+  border-color: transparent;
+  background: none;
+  cursor: default;
+  appearance: none;
+}
+
+.container .ql-editor .hljs-comment,
+.container .ql-editor .hljs-quote {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+
+.container .ql-editor .hljs-keyword,
+.container .ql-editor .hljs-selector-tag,
+.container .ql-editor .hljs-meta .hljs-keyword,
+.container .ql-editor .hljs-doctag,
+.container .ql-editor .hljs-template-tag,
+.container .ql-editor .hljs-type {
+  color: var(--tok-keyword);
+}
+
+.container .ql-editor .hljs-string,
+.container .ql-editor .hljs-regexp,
+.container .ql-editor .hljs-meta .hljs-string,
+.container .ql-editor .hljs-char {
+  color: var(--tok-string);
+}
+
+.container .ql-editor .hljs-number,
+.container .ql-editor .hljs-literal,
+.container .ql-editor .hljs-variable,
+.container .ql-editor .hljs-template-variable,
+.container .ql-editor .hljs-attr,
+.container .ql-editor .hljs-attribute,
+.container .ql-editor .hljs-selector-attr,
+.container .ql-editor .hljs-selector-class,
+.container .ql-editor .hljs-selector-id,
+.container .ql-editor .hljs-built_in,
+.container .ql-editor .hljs-operator {
+  color: var(--tok-number);
+}
+
+.container .ql-editor .hljs-title,
+.container .ql-editor .hljs-section,
+.container .ql-editor .hljs-function {
+  color: var(--tok-title);
+}
+
+.container .ql-editor .hljs-name,
+.container .ql-editor .hljs-tag,
+.container .ql-editor .hljs-symbol,
+.container .ql-editor .hljs-bullet {
+  color: var(--tok-tag);
+}
+
+.container .ql-editor .hljs-meta,
+.container .ql-editor .hljs-params,
+.container .ql-editor .hljs-subst {
+  color: var(--codeblock-text);
+}
+
+.container .ql-editor .hljs-addition {
+  background-color: var(--tok-add-bg);
+  color: var(--tok-string);
+}
+
+.container .ql-editor .hljs-deletion {
+  background-color: var(--tok-del-bg);
+  color: var(--tok-tag);
+}
+
+.container .ql-editor .hljs-emphasis {
+  font-style: italic;
+}
+
+.container .ql-editor .hljs-strong {
+  font-weight: 700;
 }
 
 .container .ql-editor td {

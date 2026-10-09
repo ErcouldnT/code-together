@@ -226,9 +226,22 @@ function inlineMarkdown(segment: Segment): string {
   return href ? `[${text}](${href})` : text;
 }
 
+/**
+ * The info string a code block's fence gets. The editor stores the language
+ * someone chose ("python"), or nothing to say it should be guessed — which
+ * arrives as `true` from older documents and as "plain" from the picker's
+ * "Auto". Only a real choice is written; a word that is not one is dropped
+ * rather than escaped, since it lands right after the backticks.
+ */
+function fenceLanguage(value: unknown): string {
+  if (typeof value !== "string" || value === "plain" || value === "text") return "";
+  return /^[a-z0-9+#-]{1,20}$/.test(value) ? value : "";
+}
+
 export function toMarkdown(ops: DeltaOp[]): string {
   const out: string[] = [];
   let inCodeBlock = false;
+  let fence = "";
 
   const endCode = () => {
     if (inCodeBlock) {
@@ -244,9 +257,13 @@ export function toMarkdown(ops: DeltaOp[]): string {
     const content = line.segments.map(inlineMarkdown).join("");
 
     if (block["code-block"]) {
+      const language = fenceLanguage(block["code-block"]);
+      // Two blocks in different languages, one under the other, are two fences.
+      if (inCodeBlock && language !== fence) endCode();
       if (!inCodeBlock) {
-        out.push("```");
+        out.push(`\`\`\`${language}`);
         inCodeBlock = true;
+        fence = language;
       }
       out.push(raw);
       continue;

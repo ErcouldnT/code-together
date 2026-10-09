@@ -24,6 +24,14 @@ unambiguous: `# ` starts a heading (up to `###### `), `> ` a quote, `- ` or
 `1. ` a list, and a line of three backticks followed by Enter a code block.
 One undo gives back the characters you typed.
 
+Code blocks are coloured by [highlight.js](https://highlightjs.org). A block
+nobody has chosen a language for guesses one, and its picker says what it
+guessed — *Auto · Python*; picking another language from it fixes the choice
+for everyone in the room, and ` ```js ` picks one as the block is opened. The
+colours are drawn by each browser and never enter the document: Quill
+highlights by formatting the text, and left alone y-quill would broadcast
+every one of those formats to the room and store them with the text.
+
 Everyone in a room gets a name and a colour, shown as a chip at the right of
 the toolbar and on their cursor as it moves. There are no accounts — a room is
 a URL — so the name lives in your own browser and you can change it by clicking
@@ -83,6 +91,8 @@ client/
   src/editor-images.ts   paste, drop and the toolbar button, via Quill's uploader
   src/identity.ts        your name and cursor colour, kept in this browser
   src/i18n.ts            every word on the page, in English, Turkish and Russian
+  src/markdown.ts        Markdown shortcuts typed into the text
+  src/syntax.ts          code highlighting, language guessing, and keeping it local
   src/presence.ts        who else is here, read out of Yjs awareness
   src/components/        top bar, menu, history, presence, skeleton, notice
   src/recent.ts          rooms you have opened, kept in this browser only

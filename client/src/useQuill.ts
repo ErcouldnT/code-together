@@ -8,6 +8,7 @@ import { catchPastedDataUrls, createInserter, IMAGE_MIME_TYPES, type Inserter } 
 import { t } from "./i18n";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
 import { markdownBindings } from "./markdown";
+import { keepTokensLocal, refreshCodePickers, syntaxOptions } from "./syntax";
 import { connect } from "./socket";
 import { keepLocalCopy } from "./yjs/offline";
 import { SocketProvider, type ProviderStatus } from "./yjs/socketProvider";
@@ -126,6 +127,7 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
         },
         cursors: true,
         keyboard: { bindings: markdownBindings },
+        syntax: syntaxOptions,
         // Quill routes both pasted files and dropped files here.
         uploader: {
           mimetypes: IMAGE_MIME_TYPES,
@@ -214,6 +216,7 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
     if (!quill || !provider) return;
     const text = provider.doc.getText(TEXT_KEY);
     const binding = new QuillBinding(text, quill, provider.awareness);
+    keepTokensLocal(binding, quill);
 
     const images = createInserter({
       quill,
@@ -237,6 +240,7 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
     if (!quill) return;
     if (ready && !readOnly) quill.enable();
     else quill.disable();
+    refreshCodePickers(quill);
   }, [quill, ready, readOnly]);
 
   // The name and colour every other person sees on this cursor. y-quill reads
