@@ -7,6 +7,7 @@ import { TEXT_KEY } from "@shared/ydoc";
 import { catchPastedDataUrls, createInserter, IMAGE_MIME_TYPES, type Inserter } from "./editor-images";
 import { t } from "./i18n";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
+import { markdownBindings } from "./markdown";
 import { connect } from "./socket";
 import { keepLocalCopy } from "./yjs/offline";
 import { SocketProvider, type ProviderStatus } from "./yjs/socketProvider";
@@ -124,6 +125,7 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
           handlers: { image: () => inserter.current?.choose() },
         },
         cursors: true,
+        keyboard: { bindings: markdownBindings },
         // Quill routes both pasted files and dropped files here.
         uploader: {
           mimetypes: IMAGE_MIME_TYPES,

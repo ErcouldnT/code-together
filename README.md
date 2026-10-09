@@ -19,6 +19,11 @@ uploaded and the document holds its address. Quill's own behaviour is to embed
 pictures as base64 *inside* the text, which in a shared document means every
 copy of that blob is broadcast to everyone in the room on every keystroke.
 
+Markdown typed into the document turns into what it means as soon as it is
+unambiguous: `# ` starts a heading (up to `###### `), `> ` a quote, `- ` or
+`1. ` a list, and a line of three backticks followed by Enter a code block.
+One undo gives back the characters you typed.
+
 Everyone in a room gets a name and a colour, shown as a chip at the right of
 the toolbar and on their cursor as it moves. There are no accounts — a room is
 a URL — so the name lives in your own browser and you can change it by clicking
