@@ -1589,3 +1589,56 @@ button.expiry-badge {
     display: none;
   }
 }
+
+/* Sharing: the address as a QR code, as text, and through the share sheet. */
+.share .dialog-form {
+  align-items: stretch;
+}
+
+.share-code {
+  align-self: center;
+  width: min(15rem, 70vw);
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  /* white in dark mode too: cameras read dark on light */
+  background-color: #fff;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.share-code svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.share-code-loading {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(45deg, #f2f2f2 0 6px, #fff 6px 12px);
+}
+
+.share-scan {
+  text-align: center;
+}
+
+.share-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.share-row .dialog-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.share-row .menu-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media print {
+  .share {
+    display: none;
+  }
+}

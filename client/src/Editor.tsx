@@ -11,6 +11,7 @@ import ExpiryDialog from "./components/ExpiryDialog";
 import HistoryPanel from "./components/HistoryPanel";
 import NewDocumentDialog from "./components/NewDocumentDialog";
 import PresenceBar from "./components/PresenceBar";
+import ShareDialog from "./components/ShareDialog";
 import TableOfContents, { useHeadings } from "./components/TableOfContents";
 import TopBar from "./components/TopBar";
 import UnlockDialog from "./components/UnlockDialog";
@@ -137,7 +138,7 @@ function DocumentView({ documentId, access, onExpired }: DocumentViewProps) {
   const { title, setTitle, onFocus, onBlur } = useTitle(provider, documentId);
   // One panel at a time: they sit in the same place.
   const [panel, setPanel] = useState<"history" | "attachments" | null>(null);
-  const [dialog, setDialog] = useState<"new" | "unlock" | "expiry" | null>(null);
+  const [dialog, setDialog] = useState<"new" | "unlock" | "expiry" | "share" | null>(null);
   const wide = useMediaQuery(WIDE);
   const [contentsOpen, setContentsOpen] = useContentsOpen(wide);
   const headings = useHeadings(quill);
@@ -160,6 +161,7 @@ function DocumentView({ documentId, access, onExpired }: DocumentViewProps) {
         readOnly={readOnly}
         expiresAt={expiresAt}
         onSetExpiry={readOnly ? undefined : () => setDialog("expiry")}
+        onShare={() => setDialog("share")}
         contentsOpen={contentsOpen}
         onToggleContents={() => setContentsOpen(!contentsOpen)}
       />
@@ -186,6 +188,13 @@ function DocumentView({ documentId, access, onExpired }: DocumentViewProps) {
       )}
 
       {dialog === "new" && <NewDocumentDialog onClose={() => setDialog(null)} />}
+      {dialog === "share" && (
+        <ShareDialog
+          url={`${window.location.origin}/${documentId}`}
+          protect={access.protect}
+          onClose={() => setDialog(null)}
+        />
+      )}
       {dialog === "expiry" && (
         <ExpiryDialog
           documentId={documentId}

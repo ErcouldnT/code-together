@@ -12,6 +12,7 @@
   "dependencies": {
     "highlight.js": "^11.12.0",
     "nanoid": "^6.0.1",
+    "qrcode-generator": "^1.5.2",
     "quill": "^2.0.3",
     "quill-cursors": "^4.3.0",
     "react": "^19.2.0",

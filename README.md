@@ -55,6 +55,12 @@ the toolbar and on their cursor as it moves. There are no accounts — a room is
 a URL — so the name lives in your own browser and you can change it by clicking
 your own chip.
 
+The **share** button beside the Document menu shows the document's address
+as a QR code — point a phone's camera at it to open the same document there —
+with a button to copy the link and, on a phone, the system share sheet. The
+code is drawn in the browser, always black on white, from a library loaded only
+when the button is pressed.
+
 A document has a title, which is part of the document and syncs like the text.
 The **Document** menu takes it away as HTML or Markdown, prints it (which is
 also how you save a PDF), lists the rooms you have opened before, and opens the

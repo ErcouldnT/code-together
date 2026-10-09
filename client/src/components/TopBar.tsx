@@ -32,6 +32,7 @@ interface Props {
   expiresAt: number | null;
   /** absent for a reader, who cannot change it */
   onSetExpiry?: () => void;
+  onShare: () => void;
 }
 
 const when = dateTimeFormat({ dateStyle: "medium", timeStyle: "short" });
@@ -99,6 +100,7 @@ export default function TopBar(
     onToggleContents,
     expiresAt,
     onSetExpiry,
+    onShare,
   }: Props,
 ) {
   return (
@@ -139,6 +141,25 @@ export default function TopBar(
       {readOnly
         ? <span className="savestate" title={t("topbar.readOnlyHint")}>{t("topbar.readOnly")}</span>
         : <SaveStateBadge state={saveState} onThisDevice={onThisDevice} />}
+      <button
+        type="button"
+        className="topbar-icon"
+        aria-label={t("share.button")}
+        title={t("share.button")}
+        onClick={onShare}
+      >
+        {/* a QR code's three finder squares and a scatter of modules */}
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+          <path
+            d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          />
+          <path d="M12 12h2v2h-2zM15 15h2v2h-2zM12 15.5h1.6v1.5H12zM15.4 12h1.6v1.6h-1.6z" fill="currentColor" />
+        </svg>
+      </button>
       <DocumentMenu
         documentId={documentId}
         onShowHistory={onShowHistory}
