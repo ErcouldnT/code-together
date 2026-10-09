@@ -44,6 +44,13 @@ export const documents = sqliteTable(
      * when `passwordHash` is.
      */
     protect: text("protect", { enum: ["view", "edit"] }),
+    /**
+     * When the document deletes itself, or null for one that lives until
+     * somebody deletes it. Checked by a sweep every half minute, and on join
+     * so a document is never opened in the gap between expiring and the
+     * sweep coming round.
+     */
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
@@ -51,8 +58,26 @@ export const documents = sqliteTable(
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
   },
-  (table) => [index("documents_updated_at_idx").on(table.updatedAt)],
+  (table) => [
+    index("documents_updated_at_idx").on(table.updatedAt),
+    index("documents_expires_at_idx").on(table.expiresAt),
+  ],
 );
+
+/**
+ * Addresses whose document expired, kept for a while after the document is
+ * gone.
+ *
+ * Without this, expiring would not stick. A browser keeps its own copy of a
+ * document it has opened, and the sync handshake sends whatever the server
+ * lacks — so the first person to come back online after the deletion would
+ * quietly upload the whole document again, to a fresh row at the same
+ * address. While the address is here, joining it is refused instead.
+ */
+export const expiredDocuments = sqliteTable("expired_documents", {
+  id: text("id").primaryKey(),
+  expiredAt: integer("expired_at", { mode: "timestamp_ms" }).notNull(),
+});
 
 /**
  * Periodic full copies of a document, so an edit can be undone hours later by

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { MIN_PASSWORD_LENGTH, type Protection } from "@shared/access";
+import { EXPIRY_CHOICES, MIN_PASSWORD_LENGTH, type Protection } from "@shared/access";
 import { addressFor, createDocument } from "../access";
+import { EXPIRY_LABELS } from "../expiry";
 import { t } from "../i18n";
 
 /**
@@ -24,6 +25,7 @@ const ERRORS = {
   "bad-name": t("new.badName"),
   "taken": t("new.taken"),
   "bad-password": t("new.badPassword", { min: MIN_PASSWORD_LENGTH }),
+  "bad-expiry": t("new.badExpiry"),
   "too-many": t("new.tooMany"),
 } as const;
 
@@ -34,6 +36,7 @@ export default function NewDocumentDialog({ onClose }: Props) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [protect, setProtect] = useState<Protection>("view");
+  const [expiresIn, setExpiresIn] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -59,6 +62,7 @@ export default function NewDocumentDialog({ onClose }: Props) {
       const created = await createDocument({
         name,
         ...(hasPassword ? { password, protect } : {}),
+        ...(expiresIn === null ? {} : { expiresIn }),
       });
       if ("error" in created) {
         setError(ERRORS[created.error]);
@@ -159,6 +163,18 @@ export default function NewDocumentDialog({ onClose }: Props) {
             {" "}{t("new.protectEdit")}
           </label>
         </fieldset>
+
+        <label className="dialog-field">
+          <span className="dialog-label">{t("new.expiry")}</span>
+          <select
+            className="dialog-input"
+            value={expiresIn ?? ""}
+            onChange={(event) => setExpiresIn(event.target.value ? Number(event.target.value) : null)}
+          >
+            <option value="">{t("expiry.never")}</option>
+            {EXPIRY_CHOICES.map((ms) => <option key={ms} value={ms}>{EXPIRY_LABELS[ms]}</option>)}
+          </select>
+        </label>
 
         <p className="dialog-note">
           {hasPassword

@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import slugify from "slugify";
 import * as Y from "yjs";
 import {
+  isExpiryChoice,
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
   slugOf,
@@ -17,6 +18,7 @@ import { META_KEY } from "../shared/ydoc.js";
 import { db } from "./db/index.js";
 import { documents } from "./db/schema.js";
 import { isProduction } from "./env.js";
+import { clearTombstone, isTombstoned } from "./expiry.js";
 import { ROOM_ID } from "./rooms.js";
 
 /**
@@ -87,17 +89,24 @@ function unlocked(documentId: string, passwordHash: string, cookieHeader: string
  */
 export function accessFor(documentId: string, cookieHeader: string | undefined): AccessInfo {
   const row = db
-    .select({ passwordHash: documents.passwordHash, protect: documents.protect })
+    .select({ passwordHash: documents.passwordHash, protect: documents.protect, expiresAt: documents.expiresAt })
     .from(documents)
     .where(eq(documents.id, documentId))
     .get();
-  if (!row?.passwordHash || !row.protect) return { protect: null, read: true, write: true };
+  const expiresAt = row?.expiresAt?.getTime() ?? null;
+  // Gone, or due to go and waiting only for the sweep: either way there is
+  // nothing to open, and saying so beats an empty page that fills back up.
+  if ((!row && isTombstoned(documentId)) || (expiresAt !== null && expiresAt <= Date.now())) {
+    return { protect: null, read: false, write: false, expiresAt: null, expired: true };
+  }
+  if (!row?.passwordHash || !row.protect) return { protect: null, read: true, write: true, expiresAt };
 
   const known = unlocked(documentId, row.passwordHash, cookieHeader);
   return {
     protect: row.protect,
     read: row.protect === "edit" || known,
     write: known,
+    expiresAt,
   };
 }
 
@@ -149,12 +158,14 @@ function createDocument(
   name: string,
   password: string,
   protect: Protection,
+  expiresIn: number | null,
 ): { id: string; passwordHash: string | null } | { error: CreateDocumentError } {
   const id = slugOf(name, slugify);
   if (!id || !ROOM_ID.test(id)) return { error: "bad-name" };
   if (password && (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH)) {
     return { error: "bad-password" };
   }
+  if (expiresIn !== null && !isExpiryChoice(expiresIn)) return { error: "bad-expiry" };
 
   const doc = new Y.Doc();
   doc.getMap(META_KEY).set("title", name.trim().slice(0, 120));
@@ -171,10 +182,14 @@ function createDocument(
       title: name.trim().slice(0, 200),
       passwordHash,
       protect: password ? protect : null,
+      expiresAt: expiresIn === null ? null : new Date(Date.now() + expiresIn),
     })
     .onConflictDoNothing({ target: documents.id })
     .run();
   if (inserted.changes === 0) return { error: "taken" };
+  // Making a document at an address that once expired is asking for it back,
+  // on purpose and new; the refusal that protected the old one is lifted.
+  clearTombstone(id);
   return { id, passwordHash };
 }
 
@@ -203,8 +218,9 @@ export function accessRoutes(): Router {
     const name = typeof body.name === "string" ? body.name : "";
     const password = typeof body.password === "string" ? body.password : "";
     const protect = isProtection(body.protect) ? body.protect : "view";
+    const expiresIn = body.expiresIn === undefined || body.expiresIn === null ? null : Number(body.expiresIn);
 
-    const created = createDocument(name, password, protect);
+    const created = createDocument(name, password, protect, expiresIn);
     if ("error" in created) {
       res.status(created.error === "taken" ? 409 : 400).json(created);
       return;

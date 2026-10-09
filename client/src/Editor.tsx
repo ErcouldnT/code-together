@@ -6,12 +6,15 @@ import { fetchAccess } from "./access";
 import AttachmentsPanel from "./components/AttachmentsPanel";
 import ConnectionStatus from "./components/ConnectionStatus";
 import DocumentSkeleton from "./components/DocumentSkeleton";
+import ExpiredNotice from "./components/ExpiredNotice";
+import ExpiryDialog from "./components/ExpiryDialog";
 import HistoryPanel from "./components/HistoryPanel";
 import NewDocumentDialog from "./components/NewDocumentDialog";
 import PresenceBar from "./components/PresenceBar";
 import TableOfContents, { useHeadings } from "./components/TableOfContents";
 import TopBar from "./components/TopBar";
 import UnlockDialog from "./components/UnlockDialog";
+import { useExpiry } from "./expiry";
 import { useQuill } from "./useQuill";
 import { useTitle } from "./useTitle";
 
@@ -26,7 +29,7 @@ import { useTitle } from "./useTitle";
  * still holds. What it keeps is the offline reload that shows the copy kept in
  * this browser instead of an error.
  */
-const UNKNOWN: AccessInfo = { protect: null, read: true, write: true };
+const UNKNOWN: AccessInfo = { protect: null, read: true, write: true, expiresAt: null };
 
 /** Wide enough for the outline to sit beside the page instead of over it. */
 const WIDE = "(min-width: 70em)";
@@ -77,6 +80,8 @@ function useContentsOpen(wide: boolean): [boolean, (open: boolean) => void] {
 export default function Editor() {
   const { id: documentId } = useParams<{ id: string }>();
   const [access, setAccess] = useState<{ id: string; info: AccessInfo } | null>(null);
+  /** the address whose document expired while it was open here */
+  const [expired, setExpired] = useState<string | null>(null);
 
   useEffect(() => {
     if (!documentId) return;
@@ -93,11 +98,25 @@ export default function Editor() {
 
   // The answer for the previous address does not count for this one.
   if (!documentId || access?.id !== documentId) return null;
+  if (access.info.expired || expired === documentId) return <ExpiredNotice documentId={documentId} />;
   if (!access.info.read) return <UnlockDialog documentId={documentId} reason="view" />;
-  return <DocumentView key={documentId} documentId={documentId} access={access.info} />;
+  return (
+    <DocumentView
+      key={documentId}
+      documentId={documentId}
+      access={access.info}
+      onExpired={() => setExpired(documentId)}
+    />
+  );
 }
 
-function DocumentView({ documentId, access }: { documentId: string; access: AccessInfo }) {
+interface DocumentViewProps {
+  documentId: string;
+  access: AccessInfo;
+  onExpired: () => void;
+}
+
+function DocumentView({ documentId, access, onExpired }: DocumentViewProps) {
   const readOnly = !access.write;
   const {
     containerRef,
@@ -113,11 +132,12 @@ function DocumentView({ documentId, access }: { documentId: string; access: Acce
     rename,
     saveState,
     onThisDevice,
-  } = useQuill(documentId, readOnly);
+  } = useQuill(documentId, readOnly, onExpired);
+  const [expiresAt, setExpiresAt] = useExpiry(provider, access.expiresAt);
   const { title, setTitle, onFocus, onBlur } = useTitle(provider, documentId);
   // One panel at a time: they sit in the same place.
   const [panel, setPanel] = useState<"history" | "attachments" | null>(null);
-  const [dialog, setDialog] = useState<"new" | "unlock" | null>(null);
+  const [dialog, setDialog] = useState<"new" | "unlock" | "expiry" | null>(null);
   const wide = useMediaQuery(WIDE);
   const [contentsOpen, setContentsOpen] = useContentsOpen(wide);
   const headings = useHeadings(quill);
@@ -138,6 +158,8 @@ function DocumentView({ documentId, access }: { documentId: string; access: Acce
         saveState={saveState}
         onThisDevice={onThisDevice}
         readOnly={readOnly}
+        expiresAt={expiresAt}
+        onSetExpiry={readOnly ? undefined : () => setDialog("expiry")}
         contentsOpen={contentsOpen}
         onToggleContents={() => setContentsOpen(!contentsOpen)}
       />
@@ -164,6 +186,14 @@ function DocumentView({ documentId, access }: { documentId: string; access: Acce
       )}
 
       {dialog === "new" && <NewDocumentDialog onClose={() => setDialog(null)} />}
+      {dialog === "expiry" && (
+        <ExpiryDialog
+          documentId={documentId}
+          expiresAt={expiresAt}
+          onChange={setExpiresAt}
+          onClose={() => setDialog(null)}
+        />
+      )}
       {dialog === "unlock" && (
         <UnlockDialog documentId={documentId} reason="edit" onClose={() => setDialog(null)} />
       )}

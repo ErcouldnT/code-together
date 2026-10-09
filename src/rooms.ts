@@ -150,6 +150,23 @@ export function leaveRoom(id: string, socketId: string): void {
 }
 
 /**
+ * Drop a room from memory without saving it — for a document that has just
+ * been deleted. A final flush here would write the text back into a row that
+ * is gone (a no-op) and a snapshot that refers to it (a foreign-key failure).
+ * Whoever was waiting for a save is released: there will not be one.
+ */
+export function discardRoom(id: string): void {
+  const room = rooms.get(id);
+  if (!room) return;
+  if (room.saveTimer) clearTimeout(room.saveTimer);
+  room.dirty = false;
+  rooms.delete(id);
+  release(room);
+  room.awareness.destroy();
+  room.doc.destroy();
+}
+
+/**
  * The live document for a room, if anyone has it open.
  *
  * Reading this rather than the database is worth it for exports: the database

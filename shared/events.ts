@@ -31,7 +31,7 @@ export interface LegacyDocumentData {
 }
 
 /** Why the server refused to open a room, in a form the client can show. */
-export type JoinErrorReason = "bad-id" | "too-large" | "locked";
+export type JoinErrorReason = "bad-id" | "too-large" | "locked" | "expired";
 
 /** Why the server dropped an update instead of applying it. */
 export type UpdateRejection = "too-large" | "too-fast" | "document-full" | "not-joined" | "read-only";
@@ -57,6 +57,12 @@ export interface ServerToClientEvents {
    * attachments live outside the CRDT, so the client re-reads the list.
    */
   "attachments-changed": () => void;
+  /**
+   * The document's expiry was set, moved or cleared — epoch ms, or null.
+   * When it actually expires the room is sent `join-error` "expired" instead,
+   * since from then on there is nothing to be in.
+   */
+  "expiry-changed": (expiresAt: number | null) => void;
 }
 
 export interface ClientToServerEvents {

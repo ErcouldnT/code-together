@@ -24,6 +24,32 @@ export interface AccessInfo {
   protect: Protection | null;
   read: boolean;
   write: boolean;
+  /** epoch ms when the document deletes itself, or null if it does not */
+  expiresAt: number | null;
+  /** the document at this address expired and was deleted */
+  expired?: boolean;
+}
+
+/**
+ * How long a document may be set to live, in ms. A short fixed list rather
+ * than any number: it is what the menus offer, and the server refusing
+ * anything else means a hand-made request cannot set a document to vanish in
+ * a second, or in a century.
+ */
+export const EXPIRY_CHOICES = [
+  60 * 60 * 1000,
+  24 * 60 * 60 * 1000,
+  7 * 24 * 60 * 60 * 1000,
+  30 * 24 * 60 * 60 * 1000,
+] as const;
+
+export function isExpiryChoice(value: unknown): value is (typeof EXPIRY_CHOICES)[number] {
+  return typeof value === "number" && (EXPIRY_CHOICES as readonly number[]).includes(value);
+}
+
+/** `POST /api/documents/:id/expiry` — null keeps the document until deleted. */
+export interface SetExpiryRequest {
+  expiresIn: number | null;
 }
 
 /** `POST /api/documents` */
@@ -33,9 +59,11 @@ export interface CreateDocumentRequest {
   password?: string;
   /** ignored without a password */
   protect?: Protection;
+  /** one of `EXPIRY_CHOICES`, or missing to keep the document */
+  expiresIn?: number;
 }
 
-export type CreateDocumentError = "bad-name" | "taken" | "bad-password";
+export type CreateDocumentError = "bad-name" | "taken" | "bad-password" | "bad-expiry";
 
 export const MIN_PASSWORD_LENGTH = 4;
 export const MAX_PASSWORD_LENGTH = 200;

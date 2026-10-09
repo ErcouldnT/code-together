@@ -8,10 +8,11 @@ import { attachmentRoutes } from "./attachments.js";
 import { closeDatabase, runMigrations } from "./db/index.js";
 import { contentsOf, deleteStaleDocuments, referencedUploads, storedContents } from "./documents.js";
 import { env, isProduction } from "./env.js";
+import { expireDue, expiryRoutes, pruneTombstones } from "./expiry.js";
 import { toHtmlDocument, toMarkdown } from "./export.js";
 import { closeAllRooms, peekRoom, ROOM_ID, roomStats } from "./rooms.js";
 import { listSnapshots, snapshotContents } from "./snapshots.js";
-import { attachSockets } from "./sockets.js";
+import { attachSockets, roomEvents } from "./sockets.js";
 import { mimeForStoredName, pathForStoredName, storeUpload, sweepUploads } from "./uploads.js";
 
 runMigrations();
@@ -120,6 +121,13 @@ app.get("/uploads/:name", (req, res) => {
 // Making a named document, and unlocking one with a password.
 app.use(accessRoutes());
 
+// Documents that delete themselves. The events reach the socket server
+// lazily, as the attachment notifications below do.
+app.use(expiryRoutes({
+  expired: (id) => roomEvents(io).expired(id),
+  changed: (id, expiresAt) => roomEvents(io).changed(id, expiresAt),
+}));
+
 // Files attached to a document. Everyone in the room is told when the list
 // changes, so a second tab never shows a file that is already gone.
 app.use(attachmentRoutes((documentId) => io.to(documentId).emit("attachments-changed")));
@@ -193,7 +201,25 @@ app.use((_req, res) => {
 const httpServer = createServer(app);
 const io = attachSockets(httpServer);
 
+/*
+ * Expiry is checked twice a minute rather than hourly with the rest: "delete
+ * in an hour" that happens at some point in the following hour is not what
+ * anyone was promised. A document that comes due between sweeps is refused at
+ * join anyway, so the gap is only ever about when the bytes leave the disk.
+ */
+const expirySweep = setInterval(() => {
+  try {
+    const expired = expireDue(roomEvents(io));
+    if (expired > 0) console.log(`Expired ${expired} document(s).`);
+  }
+  catch (error) {
+    console.error("Expiry sweep failed:", error);
+  }
+}, 30_000);
+expirySweep.unref();
+
 const cleanup = setInterval(() => {
+  pruneTombstones();
   if (env.documentTtlDays > 0) {
     const removed = deleteStaleDocuments(env.documentTtlDays);
     if (removed > 0) console.log(`Pruned ${removed} stale document(s).`);
@@ -240,6 +266,7 @@ function shutdown(signal: string): void {
   console.log(`${signal} received, shutting down.`);
 
   clearInterval(cleanup);
+  clearInterval(expirySweep);
   const force = setTimeout(() => process.exit(1), 10_000);
   force.unref();
 

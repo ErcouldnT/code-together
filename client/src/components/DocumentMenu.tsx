@@ -14,9 +14,13 @@ interface Props {
   onShowAttachments: () => void;
   onNewDocument: () => void;
   onUnlock?: () => void;
+  /** absent for a reader */
+  onSetExpiry?: () => void;
 }
 
-export default function DocumentMenu({ documentId, onShowHistory, onShowAttachments, onNewDocument, onUnlock }: Props) {
+export default function DocumentMenu(
+  { documentId, onShowHistory, onShowAttachments, onNewDocument, onUnlock, onSetExpiry }: Props,
+) {
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<RecentDocument[]>([]);
   const root = useRef<HTMLDivElement>(null);
@@ -134,6 +138,19 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
           >
             {t("menu.attachments")}
           </button>
+          {onSetExpiry && (
+            <button
+              type="button"
+              className="menu-item"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onSetExpiry();
+              }}
+            >
+              {t("expiry.menu")}
+            </button>
+          )}
 
           {recent.length > 0 && (
             <>

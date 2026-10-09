@@ -1461,3 +1461,131 @@ html[lang="ru"] .ql-snow .ql-tooltip.ql-editing a.ql-action::after {
     margin-left: 0;
   }
 }
+
+/*
+ * A document that deletes itself says so beside its title. Amber, because it
+ * is the one thing about the document that will not wait; red in its last
+ * hour.
+ */
+.expiry-badge {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #f0c36d;
+  border-radius: 999px;
+  background-color: #fff7e0;
+  padding: 0.18rem 0.55rem;
+  color: #8a5300;
+  font: 500 0.75rem/1.2 system-ui, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button.expiry-badge {
+  cursor: pointer;
+}
+
+.expiry-badge[data-soon] {
+  border-color: #f2a5a5;
+  background-color: #fdeaea;
+  color: #b42318;
+}
+
+@media (prefers-color-scheme: dark) {
+  .expiry-badge {
+    border-color: #6b4e14;
+    background-color: #2d2410;
+    color: #fbbf24;
+  }
+
+  .expiry-badge[data-soon] {
+    border-color: #7a2a2a;
+    background-color: #2f1515;
+    color: #fca5a5;
+  }
+}
+
+.dialog-note-strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Where an expired document was. */
+.gone {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 1rem;
+}
+
+.gone-card {
+  display: flex;
+  max-width: 26rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background-color: var(--panel-bg);
+  box-shadow: var(--shadow);
+  padding: 2rem 1.5rem;
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+  text-align: center;
+}
+
+.gone-icon {
+  color: var(--muted);
+}
+
+.gone-title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.gone-note {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.gone-card a.menu-button {
+  text-decoration: none;
+}
+
+.expiry-icon {
+  flex: 0 0 auto;
+}
+
+.expiry-long {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expiry-short {
+  display: none;
+}
+
+@media (max-width: 40em) {
+  /* the title needs the room more than the countdown needs its words */
+  .expiry-badge {
+    flex-shrink: 0;
+  }
+
+  .expiry-long {
+    display: none;
+  }
+
+  .expiry-short {
+    display: inline;
+  }
+}
+
+@media print {
+  .expiry-badge {
+    display: none;
+  }
+}

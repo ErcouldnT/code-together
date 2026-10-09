@@ -70,6 +70,16 @@ menu. Without a password a document is what every document always was: anyone
 with the address reads and writes. Passwords are stored as scrypt hashes; a
 browser that knows one gets an HttpOnly cookie, so it is asked once.
 
+A document can **delete itself**: in an hour, a day, a week or a month,
+chosen when it is made or later from **Delete automatically…** in the
+Document menu by anyone who may edit it. A countdown sits next to the title
+for everyone in the room. When the time comes the server deletes the
+document with its history and attachments, the people who have it open are
+shown that it has gone, and their browsers drop the copy they kept. The
+address then stays refused for thirty days — otherwise the first browser to
+come back online with a local copy would sync the whole document straight
+back into existence.
+
 The interface speaks English, Turkish and Russian. The language is taken from
 the browser's own preference list — the first of those three it finds there,
 English otherwise — and can be changed at the bottom of the Document menu,
@@ -95,6 +105,7 @@ format fails the build on whichever side is out of date.
 src/                     Express + Socket.io server
   db/                    Drizzle schema and client
   access.ts              named documents, passwords, and who may read or write
+  expiry.ts              documents that delete themselves, and staying deleted
   documents.ts           load and save a room as a Yjs document
   export.ts              one delta, two file formats
   snapshots.ts           version history: periodic states, and restoring one

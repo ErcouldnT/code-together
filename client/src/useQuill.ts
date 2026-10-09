@@ -89,7 +89,14 @@ export interface EditorState {
  * each other, so the two documents diverged and the next full-document save
  * silently overwrote whichever one arrived first.
  */
-export function useQuill(documentId: string | undefined, readOnly = false): EditorState {
+export function useQuill(
+  documentId: string | undefined,
+  readOnly = false,
+  /** the document expired while open: there is nothing left to edit */
+  onExpired?: () => void,
+): EditorState {
+  const expiredRef = useRef(onExpired);
+  expiredRef.current = onExpired;
   const [quill, setQuill] = useState<Quill | null>(null);
   const [provider, setProvider] = useState<SocketProvider | null>(null);
   const [status, setStatus] = useState<ProviderStatus>("connecting");
@@ -192,7 +199,10 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
         if (next === "synced") setReady(true);
       },
       onUnsaved: setPending,
-      onJoinError: (reason) => setProblem(message(reason)),
+      onJoinError: (reason) => {
+        if (reason === "expired" && expiredRef.current) expiredRef.current();
+        else setProblem(message(reason));
+      },
       onRejected: (reason) => setProblem(message(reason)),
     });
     setProvider(instance);

@@ -13,6 +13,7 @@ import type {
 } from "../shared/events.js";
 import { accessFor } from "./access.js";
 import { env } from "./env.js";
+import { expireDocument, isOverdue, isTombstoned, type ExpiryEvents } from "./expiry.js";
 import { joinRoom, leaveRoom, ROOM_ID, whenSaved, type Room } from "./rooms.js";
 
 interface SocketData {
@@ -124,6 +125,14 @@ export function attachSockets(httpServer: HttpServer): IoServer {
         leaveSocketRoom(socket);
       }
 
+      // An address whose document expired is refused outright — a browser
+      // holding a copy would otherwise upload it straight back. One that is
+      // overdue but not yet swept is expired here and now.
+      if (isTombstoned(documentId) || (isOverdue(documentId) && expireDocument(documentId, roomEvents(io)))) {
+        socket.emit("join-error", "expired");
+        return;
+      }
+
       const access = accessFor(documentId, socket.handshake.headers.cookie);
       if (!access.read) {
         socket.emit("join-error", "locked");
@@ -211,6 +220,26 @@ export function attachSockets(httpServer: HttpServer): IoServer {
   });
 
   return io;
+}
+
+/**
+ * What happens to a room when its document's expiry moves or arrives.
+ *
+ * An expired room is told first and closed a moment later. The client puts
+ * its document away on hearing it, which disconnects it anyway; the server
+ * closing the sockets is the backstop for a client that does not, and the
+ * delay lets the message get out ahead of the close.
+ */
+export function roomEvents(io: IoServer): ExpiryEvents {
+  return {
+    expired: (documentId) => {
+      io.to(documentId).emit("join-error", "expired");
+      setTimeout(() => io.in(documentId).disconnectSockets(true), 1000).unref();
+    },
+    changed: (documentId, expiresAt) => {
+      io.to(documentId).emit("expiry-changed", expiresAt);
+    },
+  };
 }
 
 /** An update that changes nothing: no new items and nothing deleted. */

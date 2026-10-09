@@ -92,7 +92,7 @@ describe("document passwords", () => {
     assert.equal(response.status, 201);
     assert.deepEqual(await response.json(), { id: "toplanti-notlari" });
     assert.equal(response.headers.get("set-cookie"), null);
-    assert.deepEqual(await access("toplanti-notlari"), { protect: null, read: true, write: true });
+    assert.deepEqual(await access("toplanti-notlari"), { protect: null, read: true, write: true, expiresAt: null });
 
     const client = join("toplanti-notlari");
     await client.synced;
@@ -120,8 +120,8 @@ describe("document passwords", () => {
     assert.match(creator, /^ct_gizli=/);
     assert.match(response.headers.get("set-cookie") ?? "", /HttpOnly/i);
 
-    assert.deepEqual(await access("gizli"), { protect: "view", read: false, write: false });
-    assert.deepEqual(await access("gizli", creator), { protect: "view", read: true, write: true });
+    assert.deepEqual(await access("gizli"), { protect: "view", read: false, write: false, expiresAt: null });
+    assert.deepEqual(await access("gizli", creator), { protect: "view", read: true, write: true, expiresAt: null });
     assert.equal((await fetch(`${base}/api/documents/gizli/attachments`)).status, 404);
 
     const stranger = join("gizli");
@@ -159,7 +159,7 @@ describe("document passwords", () => {
     const response = await create({ name: "Duyuru", password: "hunter22", protect: "edit" });
     const owner = cookieOf(response);
 
-    assert.deepEqual(await access("duyuru"), { protect: "edit", read: true, write: false });
+    assert.deepEqual(await access("duyuru"), { protect: "edit", read: true, write: false, expiresAt: null });
     assert.equal((await fetch(`${base}/api/documents/duyuru/attachments`)).status, 200);
     const upload = await fetch(`${base}/api/documents/duyuru/attachments?name=x.txt`, { method: "POST", body: "x" });
     assert.equal(upload.status, 403);
