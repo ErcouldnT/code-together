@@ -2,6 +2,7 @@ import { Delta } from "quill";
 import { useEffect, useState } from "react";
 import type { DeltaOp } from "@shared/events";
 import { TEXT_KEY } from "@shared/ydoc";
+import { dateTimeFormat, t } from "../i18n";
 import type { SocketProvider } from "../yjs/socketProvider";
 import VersionPreview from "./VersionPreview";
 
@@ -35,7 +36,7 @@ interface Props {
   onClose: () => void;
 }
 
-const when = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+const when = dateTimeFormat({ dateStyle: "medium", timeStyle: "short" });
 
 export default function HistoryPanel({ documentId, provider, readOnly, onClose }: Props) {
   const [snapshots, setSnapshots] = useState<Snapshot[] | null>(null);
@@ -51,7 +52,7 @@ export default function HistoryPanel({ documentId, provider, readOnly, onClose }
         if (!cancelled) setSnapshots(data.snapshots);
       })
       .catch(() => {
-        if (!cancelled) setError("Could not load the history.");
+        if (!cancelled) setError(t("history.loadFailed"));
       });
     return () => {
       cancelled = true;
@@ -67,7 +68,7 @@ export default function HistoryPanel({ documentId, provider, readOnly, onClose }
       setViewing({ id: snapshot.id, when: when.format(snapshot.createdAt), ops });
     }
     catch {
-      setError("Could not open that version.");
+      setError(t("history.openFailed"));
     }
   }
 
@@ -84,7 +85,7 @@ export default function HistoryPanel({ documentId, provider, readOnly, onClose }
       onClose();
     }
     catch {
-      setError("Could not restore that version.");
+      setError(t("history.restoreFailed"));
     }
     finally {
       setBusy(false);
@@ -97,18 +98,17 @@ export default function HistoryPanel({ documentId, provider, readOnly, onClose }
   const currentOps = (viewing && provider ? provider.doc.getText(TEXT_KEY).toDelta() : []) as DeltaOp[];
 
   return (
-    <div className="history" role="dialog" aria-label="Version history">
+    <div className="history" role="dialog" aria-label={t("menu.history")}>
       <div className="history-head">
-        <h2 className="history-title">Version history</h2>
-        <button type="button" className="menu-button" onClick={onClose}>Close</button>
+        <h2 className="history-title">{t("menu.history")}</h2>
+        <button type="button" className="menu-button" onClick={onClose}>{t("common.close")}</button>
       </div>
 
       {error && <p className="history-error">{error}</p>}
-      {snapshots === null && !error && <p className="history-empty">Loading…</p>}
+      {snapshots === null && !error && <p className="history-empty">{t("common.loading")}</p>}
       {snapshots?.length === 0 && (
         <p className="history-empty">
-          Nothing saved yet. A version is kept every ten minutes while the document is being
-          edited.
+          {t("history.empty")}
         </p>
       )}
 
@@ -119,7 +119,7 @@ export default function HistoryPanel({ documentId, provider, readOnly, onClose }
               changes the document for everyone else in the room too, so the
               confirmation sits inside the view of what it would do. */}
           <button type="button" className="menu-button" onClick={() => void open(snapshot)}>
-            Open
+            {t("history.open")}
           </button>
         </div>
       ))}

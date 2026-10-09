@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { unlock } from "../access";
+import { t } from "../i18n";
 
 /**
  * Asking for a document's password, in both of the places it is needed:
@@ -40,11 +41,11 @@ export default function UnlockDialog({ documentId, reason, onClose }: Props) {
         window.location.reload();
         return;
       }
-      setError("That is not the password.");
+      setError(t("unlock.wrong"));
       setPassword("");
     }
     catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not reach the server.");
+      setError(cause instanceof Error ? cause.message : t("common.noServer"));
     }
     finally {
       setBusy(false);
@@ -63,16 +64,16 @@ export default function UnlockDialog({ documentId, reason, onClose }: Props) {
     >
       <form className="dialog-form" onSubmit={(event) => void submit(event)}>
         <h2 id="unlock-title" className="dialog-title">
-          {reason === "view" ? "This document is password protected" : "Unlock editing"}
+          {reason === "view" ? t("unlock.viewTitle") : t("unlock.editTitle")}
         </h2>
         <p className="dialog-note">
           {reason === "view"
-            ? "Enter the password to open it."
-            : "Anyone can read this document. Enter its password to edit it."}
+            ? t("unlock.viewNote")
+            : t("unlock.editNote")}
         </p>
 
         <label className="dialog-field">
-          <span className="dialog-label">Password</span>
+          <span className="dialog-label">{t("new.password")}</span>
           <input
             className="dialog-input"
             type="password"
@@ -91,10 +92,10 @@ export default function UnlockDialog({ documentId, reason, onClose }: Props) {
 
         <div className="dialog-actions">
           {reason === "view"
-            ? <a className="menu-button" href="/">New document</a>
-            : <button type="button" className="menu-button" onClick={onClose}>Cancel</button>}
+            ? <a className="menu-button" href="/">{t("new.title")}</a>
+            : <button type="button" className="menu-button" onClick={onClose}>{t("common.cancel")}</button>}
           <button type="submit" className="menu-button dialog-primary" disabled={busy || !password}>
-            {busy ? "Checking…" : "Unlock"}
+            {busy ? t("unlock.checking") : t("unlock.submit")}
           </button>
         </div>
       </form>

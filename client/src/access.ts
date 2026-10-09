@@ -5,6 +5,7 @@ import {
   type CreateDocumentError,
   type CreateDocumentRequest,
 } from "@shared/access";
+import { t } from "./i18n";
 
 /**
  * The browser's side of document passwords. Nothing here holds a password
@@ -30,7 +31,7 @@ export async function unlock(documentId: string, password: string): Promise<bool
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ password }),
   });
-  if (response.status === 429) throw new Error("Too many attempts. Wait a minute and try again.");
+  if (response.status === 429) throw new Error(t("unlock.tooMany"));
   return response.ok;
 }
 

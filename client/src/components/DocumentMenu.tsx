@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { chooseLanguage, language, LANGUAGE_NAMES, LANGUAGES, t } from "../i18n";
 import { recentDocuments, type RecentDocument } from "../recent";
 
 /**
  * Everything you can do to a document that is not typing in it: start a new
- * one, take it away as a file, print it, or go back to one you had open before.
+ * one, take it away as a file, print it, go back to one you had open before,
+ * or read it all in another language.
  */
 
 interface Props {
@@ -48,7 +50,7 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
         aria-expanded={open}
         onClick={() => setOpen((was) => !was)}
       >
-        Document
+        {t("menu.document")}
       </button>
 
       {open && (
@@ -62,7 +64,7 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
               onNewDocument();
             }}
           >
-            New document…
+            {t("menu.new")}
           </button>
           {onUnlock && (
             <button
@@ -74,7 +76,7 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
                 onUnlock();
               }}
             >
-              Unlock editing…
+              {t("menu.unlock")}
             </button>
           )}
           <hr className="menu-separator" />
@@ -87,7 +89,7 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
             href={`/api/documents/${documentId}/export?format=html`}
             onClick={() => setOpen(false)}
           >
-            Download as HTML
+            {t("menu.html")}
           </a>
           <a
             className="menu-item"
@@ -95,7 +97,7 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
             href={`/api/documents/${documentId}/export?format=md`}
             onClick={() => setOpen(false)}
           >
-            Download as Markdown
+            {t("menu.markdown")}
           </a>
           <button
             type="button"
@@ -108,7 +110,7 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
               window.print();
             }}
           >
-            Print, or save as PDF
+            {t("menu.print")}
           </button>
           <button
             type="button"
@@ -119,7 +121,7 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
               onShowHistory();
             }}
           >
-            Version history
+            {t("menu.history")}
           </button>
           <button
             type="button"
@@ -130,12 +132,12 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
               onShowAttachments();
             }}
           >
-            Attachments
+            {t("menu.attachments")}
           </button>
 
           {recent.length > 0 && (
             <>
-              <p className="menu-heading">Recent</p>
+              <p className="menu-heading">{t("menu.recent")}</p>
               {recent.map((entry) => (
                 <a
                   key={entry.id}
@@ -149,6 +151,29 @@ export default function DocumentMenu({ documentId, onShowHistory, onShowAttachme
               ))}
             </>
           )}
+
+          {/* Picked automatically from the browser; this is for when the
+              browser's answer is not the person's. Choosing reloads, because
+              every label on the page was read once, at load. */}
+          <p className="menu-heading">{t("menu.language")}</p>
+          <div className="menu-languages">
+            {LANGUAGES.map((code) => (
+              <button
+                key={code}
+                type="button"
+                className="menu-item"
+                role="menuitemradio"
+                aria-checked={code === language}
+                lang={code}
+                onClick={() => {
+                  setOpen(false);
+                  if (code !== language) chooseLanguage(code);
+                }}
+              >
+                {LANGUAGE_NAMES[code]}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

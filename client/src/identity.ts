@@ -7,6 +7,8 @@
  * around the page belongs to somebody rather than to "User: 2847391043".
  */
 
+import { language, type Language } from "./i18n";
+
 const STORAGE_KEY = "code-together:identity";
 
 /**
@@ -28,15 +30,47 @@ const COLORS = [
   "#d6336c", // pink
 ];
 
-const ADJECTIVES = [
-  "Quiet", "Swift", "Bright", "Calm", "Bold", "Clever", "Gentle", "Keen",
-  "Lucky", "Merry", "Patient", "Curious",
-];
-
-const CREATURES = [
-  "Otter", "Falcon", "Badger", "Heron", "Lynx", "Magpie", "Marten", "Puffin",
-  "Raven", "Seal", "Stoat", "Wren",
-];
+/**
+ * Made-up names, in the language of the person they are made up for — it is
+ * their own browser that picks one. Once picked a name is just a name: it is
+ * stored as text and shown to everyone as is.
+ *
+ * Every Russian creature is masculine so that any adjective agrees with any
+ * noun; a mixed list would produce "Тихий Выдра". Turkish ones are one word
+ * each, because the chip shows the first letter of the first two words.
+ */
+const NAMES: Record<Language, { adjectives: readonly string[]; creatures: readonly string[] }> = {
+  en: {
+    adjectives: [
+      "Quiet", "Swift", "Bright", "Calm", "Bold", "Clever", "Gentle", "Keen",
+      "Lucky", "Merry", "Patient", "Curious",
+    ],
+    creatures: [
+      "Otter", "Falcon", "Badger", "Heron", "Lynx", "Magpie", "Marten", "Puffin",
+      "Raven", "Seal", "Stoat", "Wren",
+    ],
+  },
+  tr: {
+    adjectives: [
+      "Sessiz", "Çevik", "Parlak", "Sakin", "Cesur", "Zeki", "Nazik", "Keskin",
+      "Şanslı", "Neşeli", "Sabırlı", "Meraklı",
+    ],
+    creatures: [
+      "Kunduz", "Şahin", "Porsuk", "Balıkçıl", "Vaşak", "Saksağan", "Sansar", "Martı",
+      "Kuzgun", "Fok", "Gelincik", "Çalıkuşu",
+    ],
+  },
+  ru: {
+    adjectives: [
+      "Тихий", "Быстрый", "Яркий", "Спокойный", "Смелый", "Умный", "Добрый", "Зоркий",
+      "Везучий", "Весёлый", "Терпеливый", "Любопытный",
+    ],
+    creatures: [
+      "Бобр", "Сокол", "Барсук", "Журавль", "Филин", "Ворон", "Лис", "Тюлень",
+      "Ёж", "Енот", "Волк", "Дельфин",
+    ],
+  },
+};
 
 export interface Identity {
   name: string;
@@ -50,7 +84,8 @@ function pick<T>(values: readonly T[]): T {
 }
 
 function generate(): Identity {
-  return { name: `${pick(ADJECTIVES)} ${pick(CREATURES)}`, color: pick(COLORS) };
+  const { adjectives, creatures } = NAMES[language];
+  return { name: `${pick(adjectives)} ${pick(creatures)}`, color: pick(COLORS) };
 }
 
 /** Reject anything that would make a nonsense of somebody else's presence bar. */

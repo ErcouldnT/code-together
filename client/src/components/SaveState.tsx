@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { SaveState as State } from "../useQuill";
 
 /**
@@ -16,19 +17,19 @@ interface Props {
 }
 
 const LABEL: Record<State, string> = {
-  saving: "Saving…",
-  saved: "Saved",
-  offline: "Offline",
+  saving: t("save.saving"),
+  saved: t("save.saved"),
+  offline: t("save.offline"),
 };
 
 export default function SaveStateBadge({ state, onThisDevice }: Props) {
   const detail = state === "offline"
     ? onThisDevice
-      ? "Not sent yet — kept on this device until the connection returns."
-      : "Not sent yet, and this browser cannot keep a local copy. Leave this tab open."
+      ? t("save.offlineKept")
+      : t("save.offlineNotKept")
     : state === "saving"
-      ? "Your changes are on their way to the server."
-      : "Written to the server.";
+      ? t("save.savingHint")
+      : t("save.savedHint");
 
   return (
     <span className="savestate" data-state={state} role="status" title={detail}>

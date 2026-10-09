@@ -925,3 +925,167 @@ a.menu-button {
     color: #0b1220;
   }
 }
+
+/* The three languages side by side: one short row instead of three tall ones. */
+.menu-languages {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.menu-languages .menu-item {
+  width: auto;
+  flex: 1;
+  text-align: center;
+}
+
+.menu-languages .menu-item[aria-checked="true"] {
+  background-color: var(--code-bg);
+  font-weight: 600;
+}
+
+/*
+ * Quill writes its picker labels and link-tooltip words into its stylesheet
+ * as `content`, not into the page, so they are translated here rather than in
+ * i18n.ts. Keyed on <html lang>, which i18n.ts sets. The `html[lang]` prefix
+ * outranks every one of Quill's own selectors, so each value is listed —
+ * the bare picker rule would otherwise beat Quill's per-value ones.
+ */
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-label::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-item::before {
+  content: "Normal";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="1"]::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="1"]::before {
+  content: "Başlık 1";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="2"]::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="2"]::before {
+  content: "Başlık 2";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="3"]::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before {
+  content: "Başlık 3";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="4"]::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="4"]::before {
+  content: "Başlık 4";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="5"]::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="5"]::before {
+  content: "Başlık 5";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="6"]::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="6"]::before {
+  content: "Başlık 6";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-font .ql-picker-label::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-font .ql-picker-item::before {
+  content: "Sans Serif";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before {
+  content: "Serif";
+}
+
+html[lang="tr"] .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="monospace"]::before,
+html[lang="tr"] .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="monospace"]::before {
+  content: "Eş aralıklı";
+}
+
+html[lang="tr"] .ql-snow .ql-tooltip::before {
+  content: "Bağlantıya git:";
+}
+
+html[lang="tr"] .ql-snow .ql-tooltip[data-mode="link"]::before {
+  content: "Bağlantı gir:";
+}
+
+html[lang="tr"] .ql-snow .ql-tooltip a.ql-action::after {
+  content: "Düzenle";
+}
+
+html[lang="tr"] .ql-snow .ql-tooltip a.ql-remove::before {
+  content: "Kaldır";
+}
+
+html[lang="tr"] .ql-snow .ql-tooltip.ql-editing a.ql-action::after {
+  content: "Kaydet";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-label::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-item::before {
+  content: "Обычный";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="1"]::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="1"]::before {
+  content: "Заголовок 1";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="2"]::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="2"]::before {
+  content: "Заголовок 2";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="3"]::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before {
+  content: "Заголовок 3";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="4"]::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="4"]::before {
+  content: "Заголовок 4";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="5"]::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="5"]::before {
+  content: "Заголовок 5";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="6"]::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="6"]::before {
+  content: "Заголовок 6";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-font .ql-picker-label::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-font .ql-picker-item::before {
+  content: "Без засечек";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before {
+  content: "С засечками";
+}
+
+html[lang="ru"] .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="monospace"]::before,
+html[lang="ru"] .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="monospace"]::before {
+  content: "Моноширинный";
+}
+
+html[lang="ru"] .ql-snow .ql-tooltip::before {
+  content: "Перейти по ссылке:";
+}
+
+html[lang="ru"] .ql-snow .ql-tooltip[data-mode="link"]::before {
+  content: "Введите ссылку:";
+}
+
+html[lang="ru"] .ql-snow .ql-tooltip a.ql-action::after {
+  content: "Изменить";
+}
+
+html[lang="ru"] .ql-snow .ql-tooltip a.ql-remove::before {
+  content: "Удалить";
+}
+
+html[lang="ru"] .ql-snow .ql-tooltip.ql-editing a.ql-action::after {
+  content: "Сохранить";
+}

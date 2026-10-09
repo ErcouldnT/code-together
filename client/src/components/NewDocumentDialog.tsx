@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { MIN_PASSWORD_LENGTH, type Protection } from "@shared/access";
 import { addressFor, createDocument } from "../access";
+import { t } from "../i18n";
 
 /**
  * Making a document with a name of its own instead of a random address.
@@ -20,10 +21,10 @@ interface Props {
 }
 
 const ERRORS = {
-  "bad-name": "Use at least one letter or digit.",
-  "taken": "A document already has that address. Pick another name.",
-  "bad-password": `The password needs at least ${MIN_PASSWORD_LENGTH} characters.`,
-  "too-many": "Too many documents made just now. Wait a minute and try again.",
+  "bad-name": t("new.badName"),
+  "taken": t("new.taken"),
+  "bad-password": t("new.badPassword", { min: MIN_PASSWORD_LENGTH }),
+  "too-many": t("new.tooMany"),
 } as const;
 
 export default function NewDocumentDialog({ onClose }: Props) {
@@ -50,7 +51,7 @@ export default function NewDocumentDialog({ onClose }: Props) {
     event.preventDefault();
     if (!address) return setError(ERRORS["bad-name"]);
     if (hasPassword && password.length < MIN_PASSWORD_LENGTH) return setError(ERRORS["bad-password"]);
-    if (hasPassword && confirm !== password) return setError("The two passwords are not the same.");
+    if (hasPassword && confirm !== password) return setError(t("new.mismatch"));
 
     setBusy(true);
     setError(null);
@@ -67,7 +68,7 @@ export default function NewDocumentDialog({ onClose }: Props) {
       navigate(`/${created.id}`);
     }
     catch {
-      setError("Could not reach the server.");
+      setError(t("common.noServer"));
     }
     finally {
       setBusy(false);
@@ -84,35 +85,35 @@ export default function NewDocumentDialog({ onClose }: Props) {
       onCancel={onClose}
     >
       <form className="dialog-form" onSubmit={(event) => void submit(event)}>
-        <h2 id="new-document-title" className="dialog-title">New document</h2>
+        <h2 id="new-document-title" className="dialog-title">{t("new.title")}</h2>
 
         <label className="dialog-field">
-          <span className="dialog-label">Name</span>
+          <span className="dialog-label">{t("new.name")}</span>
           <input
             className="dialog-input"
             value={name}
             maxLength={120}
             required
             autoFocus
-            placeholder="Meeting notes"
+            placeholder={t("new.namePlaceholder")}
             onChange={(event) => {
               setName(event.target.value);
               setError(null);
             }}
           />
           <span className="dialog-hint">
-            {address ? `${window.location.host}/${address}` : "The address is made from the name."}
+            {address ? `${window.location.host}/${address}` : t("new.addressHint")}
           </span>
         </label>
 
         <label className="dialog-field">
-          <span className="dialog-label">Password</span>
+          <span className="dialog-label">{t("new.password")}</span>
           <input
             className="dialog-input"
             type="password"
             value={password}
             autoComplete="new-password"
-            placeholder="Optional"
+            placeholder={t("new.optional")}
             onChange={(event) => {
               setPassword(event.target.value);
               setError(null);
@@ -121,7 +122,7 @@ export default function NewDocumentDialog({ onClose }: Props) {
         </label>
 
         <label className="dialog-field">
-          <span className="dialog-label">Password again</span>
+          <span className="dialog-label">{t("new.passwordAgain")}</span>
           <input
             className="dialog-input"
             type="password"
@@ -134,11 +135,11 @@ export default function NewDocumentDialog({ onClose }: Props) {
               setError(null);
             }}
           />
-          {mismatch && <span className="dialog-hint dialog-hint-error">The two passwords are not the same.</span>}
+          {mismatch && <span className="dialog-hint dialog-hint-error">{t("new.mismatch")}</span>}
         </label>
 
         <fieldset className="dialog-field dialog-choice" disabled={!hasPassword}>
-          <legend className="dialog-label">The password protects</legend>
+          <legend className="dialog-label">{t("new.protects")}</legend>
           <label>
             <input
               type="radio"
@@ -146,7 +147,7 @@ export default function NewDocumentDialog({ onClose }: Props) {
               checked={protect === "view"}
               onChange={() => setProtect("view")}
             />
-            {" "}Viewing — nobody without it can open the document
+            {" "}{t("new.protectView")}
           </label>
           <label>
             <input
@@ -155,22 +156,22 @@ export default function NewDocumentDialog({ onClose }: Props) {
               checked={protect === "edit"}
               onChange={() => setProtect("edit")}
             />
-            {" "}Editing — everyone can read, only someone with the password can write
+            {" "}{t("new.protectEdit")}
           </label>
         </fieldset>
 
         <p className="dialog-note">
           {hasPassword
-            ? "Keep the password somewhere safe: it cannot be recovered or changed."
-            : "Without a password the document is public: anyone with the address can read and edit it."}
+            ? t("new.keepSafe")
+            : t("new.public")}
         </p>
 
         {error && <p className="dialog-error" role="alert">{error}</p>}
 
         <div className="dialog-actions">
-          <button type="button" className="menu-button" onClick={onClose}>Cancel</button>
+          <button type="button" className="menu-button" onClick={onClose}>{t("common.cancel")}</button>
           <button type="submit" className="menu-button dialog-primary" disabled={busy || !address || mismatch}>
-            {busy ? "Creating…" : "Create"}
+            {busy ? t("new.creating") : t("new.create")}
           </button>
         </div>
       </form>

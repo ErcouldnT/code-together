@@ -39,6 +39,12 @@ menu. Without a password a document is what every document always was: anyone
 with the address reads and writes. Passwords are stored as scrypt hashes; a
 browser that knows one gets an HttpOnly cookie, so it is asked once.
 
+The interface speaks English, Turkish and Russian. The language is taken from
+the browser's own preference list — the first of those three it finds there,
+English otherwise — and can be changed at the bottom of the Document menu,
+which this browser then remembers. Generated names follow suit: a Turkish
+browser joins as "Sessiz Şahin", a Russian one as "Тихий Сокол".
+
 ## Stack
 
 | Layer     | Technology |
@@ -71,6 +77,7 @@ client/
   src/useQuill.ts        Quill + QuillBinding
   src/editor-images.ts   paste, drop and the toolbar button, via Quill's uploader
   src/identity.ts        your name and cursor colour, kept in this browser
+  src/i18n.ts            every word on the page, in English, Turkish and Russian
   src/presence.ts        who else is here, read out of Yjs awareness
   src/components/        top bar, menu, history, presence, skeleton, notice
   src/recent.ts          rooms you have opened, kept in this browser only

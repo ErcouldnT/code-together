@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "../i18n";
 import { initials, type Identity } from "../identity";
 import { usePresence } from "../presence";
 import type { SocketProvider } from "../yjs/socketProvider";
@@ -33,7 +34,7 @@ export default function PresenceBar({ provider, identity, onRename }: Props) {
   if (peers.length === 0) return null;
 
   return (
-    <div className="presence" aria-label="People in this document">
+    <div className="presence" aria-label={t("presence.label")}>
       {editing && (
         <input
           className="presence-name"
@@ -60,8 +61,8 @@ export default function PresenceBar({ provider, identity, onRename }: Props) {
           // The name is the accessible label because the chip itself shows two
           // letters; a screen reader reading "QO" would be telling nobody
           // anything.
-          title={peer.self ? `${peer.name} (you) — click to rename` : peer.name}
-          aria-label={peer.self ? `${peer.name}, you. Rename yourself.` : peer.name}
+          title={peer.self ? t("presence.selfTitle", { name: peer.name }) : peer.name}
+          aria-label={peer.self ? t("presence.selfLabel", { name: peer.name }) : peer.name}
           data-self={peer.self || undefined}
           disabled={!peer.self}
           onClick={() => {

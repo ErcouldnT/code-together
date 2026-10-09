@@ -1,3 +1,4 @@
+import { t, tCount } from "../i18n";
 import type { ProviderStatus } from "../yjs/socketProvider";
 
 /**
@@ -10,10 +11,10 @@ import type { ProviderStatus } from "../yjs/socketProvider";
  */
 
 const STATUS_TEXT: Record<ProviderStatus, string | null> = {
-  connecting: "Connecting…",
-  syncing: "Syncing…",
+  connecting: t("status.connecting"),
+  syncing: t("status.syncing"),
   synced: null,
-  offline: "Offline — your changes will be sent when the connection returns.",
+  offline: t("status.offline"),
 };
 
 interface Props {
@@ -25,7 +26,7 @@ interface Props {
 
 export default function ConnectionStatus({ status, problem, uploading }: Props) {
   const uploadingText
-    = uploading > 0 ? `Uploading ${uploading} picture${uploading === 1 ? "" : "s"}…` : null;
+    = uploading > 0 ? tCount("status.uploading", uploading) : null;
   const text = problem ?? uploadingText ?? STATUS_TEXT[status];
   if (!text) return null;
 

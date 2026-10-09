@@ -9,6 +9,7 @@ import {
   type Attachment,
 } from "../attachments";
 import { TEXT_KEY } from "@shared/ydoc";
+import { dateTimeFormat, t } from "../i18n";
 import type { SocketProvider } from "../yjs/socketProvider";
 
 /**
@@ -35,7 +36,7 @@ interface Pending {
   progress: number;
 }
 
-const when = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+const when = dateTimeFormat({ dateStyle: "medium", timeStyle: "short" });
 
 export default function AttachmentsPanel({ documentId, provider, addedBy, readOnly, onClose }: Props) {
   const [attachments, setAttachments] = useState<Attachment[] | null>(null);
@@ -72,7 +73,7 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, readOn
     setError(null);
     for (const file of Array.from(files)) {
       if (maxBytes !== null && file.size > maxBytes) {
-        setError(`“${file.name}” is larger than ${formatBytes(maxBytes)}.`);
+        setError(t("attach.largerThan", { name: file.name, max: formatBytes(maxBytes) }));
         continue;
       }
       const key = nextKey.current++;
@@ -109,7 +110,7 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, readOn
     <div
       className={`history attachments${dragging ? " attachments-dragging" : ""}`}
       role="dialog"
-      aria-label="Attachments"
+      aria-label={t("attach.title")}
       onDragOver={(event) => {
         if (readOnly || !event.dataTransfer.types.includes("Files")) return;
         event.preventDefault();
@@ -123,14 +124,14 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, readOn
       }}
     >
       <div className="history-head">
-        <h2 className="history-title">Attachments</h2>
-        <button type="button" className="menu-button" onClick={onClose}>Close</button>
+        <h2 className="history-title">{t("attach.title")}</h2>
+        <button type="button" className="menu-button" onClick={onClose}>{t("common.close")}</button>
       </div>
 
       {!readOnly && (
         <>
           <button type="button" className="menu-button attachments-add" onClick={() => input.current?.click()}>
-            Add files…
+            {t("attach.add")}
           </button>
           <input
             ref={input}
@@ -143,7 +144,7 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, readOn
             }}
           />
           <p className="history-empty">
-            Or drop files here{maxBytes !== null && ` — up to ${formatBytes(maxBytes)} each`}.
+            {maxBytes !== null ? t("attach.dropMax", { max: formatBytes(maxBytes) }) : t("attach.drop")}
           </p>
         </>
       )}
@@ -157,9 +158,9 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, readOn
         </div>
       ))}
 
-      {attachments === null && !error && <p className="history-empty">Loading…</p>}
+      {attachments === null && !error && <p className="history-empty">{t("common.loading")}</p>}
       {attachments?.length === 0 && pending.length === 0 && (
-        <p className="history-empty">No files attached yet.</p>
+        <p className="history-empty">{t("attach.empty")}</p>
       )}
 
       {attachments?.map((entry) => (
@@ -175,10 +176,10 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, readOn
             ? (
               <div className="history-confirm">
                 <button type="button" className="menu-button attachments-danger" onClick={() => void remove(entry.id)}>
-                  Delete
+                  {t("common.delete")}
                 </button>
                 <button type="button" className="menu-button" onClick={() => setConfirming(null)}>
-                  Keep
+                  {t("attach.keep")}
                 </button>
               </div>
             )
@@ -187,11 +188,11 @@ export default function AttachmentsPanel({ documentId, provider, addedBy, readOn
                 {/* A plain link: the server sends the attachment disposition,
                     so the browser's own download does the work. */}
                 <a className="menu-button" href={downloadUrl(documentId, entry.id)} download={entry.name}>
-                  Download
+                  {t("attach.download")}
                 </a>
                 {!readOnly && (
                   <button type="button" className="menu-button" onClick={() => setConfirming(entry.id)}>
-                    Delete
+                    {t("common.delete")}
                   </button>
                 )}
               </div>

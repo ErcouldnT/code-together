@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { SaveState } from "../useQuill";
 import DocumentMenu from "./DocumentMenu";
 import SaveStateBadge from "./SaveState";
@@ -47,8 +48,8 @@ export default function TopBar(
       <input
         className="topbar-title"
         value={title}
-        placeholder="Untitled document"
-        aria-label="Document title"
+        placeholder={t("topbar.untitled")}
+        aria-label={t("topbar.titleLabel")}
         maxLength={120}
         readOnly={readOnly}
         onChange={(event) => onTitleChange(event.target.value)}
@@ -58,7 +59,7 @@ export default function TopBar(
       {/* Nothing a reader does is saved, so "Saved" would be a claim about
           nothing; what they need to know is why the editor will not type. */}
       {readOnly
-        ? <span className="savestate" title="You can read this document but not change it.">Read only</span>
+        ? <span className="savestate" title={t("topbar.readOnlyHint")}>{t("topbar.readOnly")}</span>
         : <SaveStateBadge state={saveState} onThisDevice={onThisDevice} />}
       <DocumentMenu
         documentId={documentId}

@@ -1,6 +1,7 @@
 import { Delta, type default as Quill } from "quill";
 import * as Y from "yjs";
 import { AttachmentError, downloadUrl, formatBytes, uploadAttachment } from "./attachments";
+import { t } from "./i18n";
 import { upload, UploadError } from "./uploads";
 
 /**
@@ -92,7 +93,7 @@ export function createInserter(
         anchor = Y.createRelativePositionFromTypeIndex(text, index + 1);
       }
       catch (error) {
-        onError(error instanceof UploadError ? error.message : "Could not upload that picture.");
+        onError(error instanceof UploadError ? error.message : t("upload.picture"));
       }
       finally {
         uploading -= 1;
@@ -146,7 +147,7 @@ export function createInserter(
         anchor = Y.createRelativePositionFromTypeIndex(text, end);
       }
       catch (error) {
-        onError(error instanceof AttachmentError ? error.message : `Could not attach “${file.name}”.`);
+        onError(error instanceof AttachmentError ? error.message : t("attach.attachFailed", { name: file.name }));
       }
       finally {
         uploading -= 1;

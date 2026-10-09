@@ -12,6 +12,7 @@ export interface Attachment {
 }
 
 import type * as Y from "yjs";
+import { t } from "./i18n";
 
 export class AttachmentError extends Error {}
 
@@ -23,7 +24,7 @@ export function downloadUrl(documentId: string, attachmentId: string): string {
 
 export async function listAttachments(documentId: string): Promise<{ attachments: Attachment[]; maxBytes: number }> {
   const response = await fetch(base(documentId));
-  if (!response.ok) throw new AttachmentError("Could not load the attachments.");
+  if (!response.ok) throw new AttachmentError(t("attach.loadFailed"));
   return (await response.json()) as { attachments: Attachment[]; maxBytes: number };
 }
 
@@ -48,10 +49,10 @@ export function uploadAttachment(
     };
     request.onload = () => {
       if (request.status === 201) resolve(JSON.parse(request.responseText) as Attachment);
-      else if (request.status === 413) reject(new AttachmentError(`“${file.name}” is too large.`));
-      else reject(new AttachmentError(`Upload failed (${request.status}).`));
+      else if (request.status === 413) reject(new AttachmentError(t("attach.fileTooLarge", { name: file.name })));
+      else reject(new AttachmentError(t("upload.failedStatus", { status: request.status })));
     };
-    request.onerror = () => reject(new AttachmentError("Upload failed: the connection dropped."));
+    request.onerror = () => reject(new AttachmentError(t("upload.dropped")));
     request.send(file);
   });
 }
@@ -59,7 +60,7 @@ export function uploadAttachment(
 export async function deleteAttachment(documentId: string, attachmentId: string): Promise<void> {
   const response = await fetch(`${base(documentId)}/${attachmentId}`, { method: "DELETE" });
   // 404 means somebody else got there first, which is the outcome asked for.
-  if (!response.ok && response.status !== 404) throw new AttachmentError("Could not delete that file.");
+  if (!response.ok && response.status !== 404) throw new AttachmentError(t("attach.deleteFailed"));
 }
 
 /**

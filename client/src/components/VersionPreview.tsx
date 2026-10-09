@@ -1,6 +1,7 @@
 import Quill, { Delta } from "quill";
 import { useEffect, useRef, useState } from "react";
 import type { DeltaOp } from "@shared/events";
+import { t } from "../i18n";
 
 /**
  * Reading a version before deciding to restore it.
@@ -89,18 +90,18 @@ export default function VersionPreview({ when, ops, current, onRestore, onClose,
   const unchanged = mode === "changes" && new Delta(current as Ops).diff(new Delta(ops as Ops)).ops.length === 0;
 
   return (
-    <div className="preview" role="dialog" aria-label={`Version from ${when}`}>
+    <div className="preview" role="dialog" aria-label={t("preview.label", { when })}>
       <div className="preview-head">
         <h2 className="preview-title">{when}</h2>
 
-        <div className="preview-modes" role="group" aria-label="What to show">
+        <div className="preview-modes" role="group" aria-label={t("preview.show")}>
           <button
             type="button"
             className="menu-button"
             aria-pressed={mode === "changes"}
             onClick={() => setMode("changes")}
           >
-            Changes
+            {t("preview.changes")}
           </button>
           <button
             type="button"
@@ -108,25 +109,25 @@ export default function VersionPreview({ when, ops, current, onRestore, onClose,
             aria-pressed={mode === "version"}
             onClick={() => setMode("version")}
           >
-            This version
+            {t("preview.version")}
           </button>
         </div>
 
         <div className="preview-actions">
           {onRestore && (
             <button type="button" className="menu-button" disabled={busy} onClick={onRestore}>
-              {busy ? "Restoring…" : "Restore this"}
+              {busy ? t("preview.restoring") : t("preview.restore")}
             </button>
           )}
-          <button type="button" className="menu-button" onClick={onClose}>Close</button>
+          <button type="button" className="menu-button" onClick={onClose}>{t("common.close")}</button>
         </div>
       </div>
 
       {mode === "changes" && (
         <p className="preview-legend">
           {unchanged
-            ? "Nothing would change — this version matches the document as it stands."
-            : "Struck through would be removed, highlighted would be added."}
+            ? t("preview.same")
+            : t("preview.legend")}
         </p>
       )}
 

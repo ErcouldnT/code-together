@@ -2,8 +2,10 @@ import Quill from "quill";
 import QuillCursors from "quill-cursors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QuillBinding } from "y-quill";
+import type { JoinErrorReason, UpdateRejection } from "@shared/events";
 import { TEXT_KEY } from "@shared/ydoc";
 import { catchPastedDataUrls, createInserter, IMAGE_MIME_TYPES, type Inserter } from "./editor-images";
+import { t } from "./i18n";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
 import { connect } from "./socket";
 import { keepLocalCopy } from "./yjs/offline";
@@ -25,15 +27,7 @@ const TOOLBAR_OPTIONS = [
 ];
 
 /** Something the user needs to know, because the alternative is typing into a void. */
-const MESSAGES = {
-  "bad-id": "That is not a valid document address.",
-  "too-large": "This document has grown too large to open.",
-  "too-fast": "Slow down — some changes were not saved.",
-  "document-full": "This document is full; new changes are not being saved.",
-  "not-joined": "Not connected to the document yet.",
-  "locked": "This document needs its password. Reload the page to enter it.",
-  "read-only": "This document is read-only; your change was not saved.",
-} as const;
+const message = (reason: JoinErrorReason | UpdateRejection): string => t(`problem.${reason}`);
 
 /**
  * What the save indicator says. Coarse on purpose: the useful question is
@@ -121,7 +115,7 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
 
     const instance = new Quill(editor, {
       theme: "snow",
-      placeholder: "Start typing, or paste a screenshot…",
+      placeholder: t("editor.placeholder"),
       modules: {
         toolbar: {
           container: TOOLBAR_OPTIONS,
@@ -188,8 +182,8 @@ export function useQuill(documentId: string | undefined, readOnly = false): Edit
         if (next === "synced") setReady(true);
       },
       onUnsaved: setPending,
-      onJoinError: (reason) => setProblem(MESSAGES[reason]),
-      onRejected: (reason) => setProblem(MESSAGES[reason]),
+      onJoinError: (reason) => setProblem(message(reason)),
+      onRejected: (reason) => setProblem(message(reason)),
     });
     setProvider(instance);
 

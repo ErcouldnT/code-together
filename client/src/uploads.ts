@@ -7,6 +7,8 @@
  * one place; see editor-images.ts.
  */
 
+import { t } from "./i18n";
+
 /** Anything wider than this is re-encoded before it leaves the browser. */
 const MAX_EDGE = 2048;
 /** …as is anything heavier, whatever its dimensions. */
@@ -71,11 +73,11 @@ export async function upload(file: File): Promise<string> {
     body,
   });
 
-  if (response.status === 413) throw new UploadError("That picture is too large.");
-  if (response.status === 415) throw new UploadError("That file is not an image we can store.");
-  if (!response.ok) throw new UploadError(`Upload failed (${response.status}).`);
+  if (response.status === 413) throw new UploadError(t("upload.tooLarge"));
+  if (response.status === 415) throw new UploadError(t("upload.notImage"));
+  if (!response.ok) throw new UploadError(t("upload.failedStatus", { status: response.status }));
 
   const { url } = (await response.json()) as { url?: string };
-  if (!url) throw new UploadError("Upload failed.");
+  if (!url) throw new UploadError(t("upload.failed"));
   return url;
 }
