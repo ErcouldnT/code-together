@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
+  CLEANUP_KEYS,
   LIMITS,
   RATE_LIMIT_KEYS,
   SIZE_LIMIT_KEYS,
@@ -10,6 +11,7 @@ import {
   type LimitSpec,
 } from "@shared/admin";
 import { language, t } from "../i18n";
+import CleanupCard from "./CleanupCard";
 
 /**
  * /admin: how the server is doing, and the limits it enforces.
@@ -67,9 +69,12 @@ function fromField(key: LimitKey, text: string): number {
 /** A limit as a reader would say it: "300 / min", "25 MB", "No limit". */
 function describe(key: LimitKey, value: number): string {
   const spec: LimitSpec = LIMITS[key];
-  if (value === 0 && spec.zeroIsUnlimited) return t("admin.unlimited");
+  if (value === 0 && spec.zero) return spec.zero === "off" ? t("admin.off0") : t("admin.unlimited");
   if (spec.unit === "bytes") return formatBytes(value);
   if (spec.unit === "ms") return `${number.format(value / 1000)} ${t("admin.seconds")}`;
+  if (spec.unit === "hours" || spec.unit === "days") {
+    return new Intl.NumberFormat(language, { style: "unit", unit: spec.unit === "hours" ? "hour" : "day", unitDisplay: "long" }).format(value);
+  }
   return number.format(value);
 }
 
@@ -79,6 +84,8 @@ function suffix(key: LimitKey): string {
   const unit = LIMITS[key].unit;
   if (unit === "bytes") return t("admin.megabytes");
   if (unit === "ms") return t("admin.seconds");
+  if (unit === "hours") return t("admin.hours");
+  if (unit === "days") return t("admin.days");
   return key === "updateBurst" ? "" : t("admin.perMinute");
 }
 
@@ -250,6 +257,14 @@ function Dashboard({ overview, onRefresh, onSaved }: DashboardProps) {
         overview={overview}
         onSaved={onSaved}
       />
+      <CleanupCard onChanged={onRefresh} />
+      <LimitsForm
+        title={t("admin.auto")}
+        note={t("admin.autoNote")}
+        keys={CLEANUP_KEYS}
+        overview={overview}
+        onSaved={onSaved}
+      />
     </>
   );
 }
@@ -282,7 +297,7 @@ function LimitsForm({ title, note, keys, overview, onSaved }: LimitsFormProps) {
     const value = fromField(key, values[key]);
     const spec: LimitSpec = LIMITS[key];
     if (Number.isNaN(value)) return true;
-    if (value === 0 && spec.zeroIsUnlimited) return false;
+    if (value === 0 && spec.zero) return false;
     return value < spec.min || value > spec.max;
   };
 
@@ -355,8 +370,11 @@ function LimitsForm({ title, note, keys, overview, onSaved }: LimitsFormProps) {
               <p className="admin-limit-hint" id={`limit-${key}-hint`}>
                 {t("admin.default", { value: describe(key, fallback) })}
                 {" · "}
-                {spec.zeroIsUnlimited
-                  ? t("admin.allowedUpTo", { max: describe(key, spec.max) })
+                {spec.zero
+                  ? t(spec.zero === "off" ? "admin.allowedOrOff" : "admin.allowedUpTo", {
+                      min: describe(key, spec.min),
+                      max: describe(key, spec.max),
+                    })
                   : t("admin.allowed", { min: describe(key, min), max: describe(key, spec.max) })}
                 {!isDefault && (
                   <>

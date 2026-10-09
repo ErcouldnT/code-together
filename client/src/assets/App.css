@@ -1828,3 +1828,97 @@ button.expiry-badge {
     padding-block: 0.6rem;
   }
 }
+
+/* Cleanup: two groups side by side on a desk, stacked on a phone. */
+.admin-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1rem 1.5rem;
+}
+
+.admin-group {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.admin-group .admin-actions {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+.admin-subheading {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+}
+
+.admin-found {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+.admin-inline-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-inline-field select {
+  width: auto;
+}
+
+.admin-list {
+  font-size: 0.85rem;
+}
+
+.admin-list summary {
+  color: var(--link);
+  cursor: pointer;
+}
+
+.admin-list ul {
+  max-height: 14rem;
+  overflow-y: auto;
+  margin: 0.4rem 0;
+  padding-left: 1.1rem;
+}
+
+.admin-list li {
+  overflow-wrap: anywhere;
+  padding: 0.1rem 0;
+}
+
+.admin-list a {
+  color: var(--text);
+}
+
+.admin-muted-inline {
+  color: var(--muted);
+}
+
+.admin-confirm {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-danger {
+  border-color: #d14343;
+  background-color: #d14343;
+  color: #fff;
+  font-weight: 600;
+}
+
+.admin-danger-outline {
+  border-color: #d14343;
+  color: #d14343;
+}
+
+.admin-danger-outline:disabled,
+.admin-danger:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

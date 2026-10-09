@@ -28,6 +28,10 @@ export function defaultLimits(): Limits {
     maxAttachmentBytes: env.maxAttachmentBytes,
     attachmentQuotaBytes: env.attachmentQuotaBytes,
     storageQuotaBytes: env.storageQuotaBytes,
+    // Off unless asked for: deleting documents nobody chose to delete is
+    // something an operator turns on, not something an upgrade does.
+    emptyDocumentHours: 0,
+    abandonedDocumentDays: env.documentTtlDays,
   };
 }
 

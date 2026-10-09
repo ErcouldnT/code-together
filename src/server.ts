@@ -7,7 +7,8 @@ import { accessRoutes, allowed } from "./access.js";
 import { adminRoutes } from "./admin.js";
 import { attachmentRoutes } from "./attachments.js";
 import { closeDatabase, runMigrations } from "./db/index.js";
-import { contentsOf, deleteStaleDocuments, referencedUploads, storedContents } from "./documents.js";
+import { automaticCleanup } from "./cleanup.js";
+import { contentsOf, referencedUploads, storedContents } from "./documents.js";
 import { env, isProduction } from "./env.js";
 import { expireDue, expiryRoutes, pruneTombstones } from "./expiry.js";
 import { toHtmlDocument, toMarkdown } from "./export.js";
@@ -238,10 +239,10 @@ expirySweep.unref();
 
 const cleanup = setInterval(() => {
   pruneTombstones();
-  if (env.documentTtlDays > 0) {
-    const removed = deleteStaleDocuments(env.documentTtlDays);
-    if (removed > 0) console.log(`Pruned ${removed} stale document(s).`);
-  }
+  // Whatever the admin screen has switched on; DOCUMENT_TTL_DAYS still
+  // switches on the abandoned half, as it did before there was a screen.
+  const { empty, abandoned } = automaticCleanup(limits());
+  if (empty + abandoned > 0) console.log(`Cleaned up ${empty} empty and ${abandoned} abandoned document(s).`);
   // Runs whether or not documents are pruned: a picture also becomes
   // unreferenced by being deleted out of a document that stays.
   try {

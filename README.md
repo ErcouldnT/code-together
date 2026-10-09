@@ -114,6 +114,16 @@ the moment it is enforced. Changed limits are kept in the database and
 outrank the environment, which only says where each one starts; "Use
 default" hands one back to the environment.
 
+The screen also clears out documents nobody will come back to. **Empty**
+ones — no text, title, attachment or password, at least an hour old — are
+what a visit to the front page leaves behind when nobody types; **abandoned**
+ones have not changed in 30, 90, 180 or 365 days. Each kind is counted and
+listed before anything is deleted, deleting asks once more, and the server
+finds the documents again itself rather than trusting a list from the page.
+Both can also run every hour on their own. A document someone has open is
+never touched. `DOCUMENT_TTL_DAYS` still turns on the hourly abandoned
+cleanup, as it did before the screen existed.
+
 ## Stack
 
 | Layer     | Technology |
@@ -137,6 +147,7 @@ src/                     Express + Socket.io server
   admin.ts               the admin screen's API, behind ADMIN_TOKEN
   settings.ts            the limits as they stand, changeable without a restart
   storage.ts             how much the stored files take up, for the quotas
+  cleanup.ts             finding and deleting empty and abandoned documents
   documents.ts           load and save a room as a Yjs document
   export.ts              one delta, two file formats
   snapshots.ts           version history: periodic states, and restoring one

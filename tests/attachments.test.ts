@@ -124,15 +124,10 @@ describe("document attachments", () => {
   it("removes a document's files when the document is pruned", async () => {
     const dir = join(process.env.UPLOAD_DIR!, "attachments", "room-a");
     assert.ok(readdirSync(dir).length > 0);
-    // everything is older than "minus one day from now + 2 days"
-    const realNow = Date.now;
-    Date.now = () => realNow() + 2 * 24 * 60 * 60 * 1000;
-    try {
-      documents.deleteStaleDocuments(1);
-    }
-    finally {
-      Date.now = realNow;
-    }
+    // two days from now, everything here is more than a day untouched
+    const cleanup = await import("../src/cleanup.js");
+    const later = Date.now() + 2 * 24 * 60 * 60 * 1000;
+    cleanup.deleteDocuments(cleanup.findAbandoned(1, later).map((row) => row.id));
     assert.ok(!existsSync(dir));
     assert.deepEqual(attachments.listAttachments("room-a"), []);
   });

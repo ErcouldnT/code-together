@@ -7,14 +7,17 @@
  * what is allowed before anything is sent — the server checks them again.
  */
 
-export type LimitUnit = "count" | "bytes" | "ms";
+export type LimitUnit = "count" | "bytes" | "ms" | "hours" | "days";
 
 export interface LimitSpec {
   unit: LimitUnit;
   min: number;
   max: number;
-  /** 0 means "no limit" rather than "nothing allowed" */
-  zeroIsUnlimited?: boolean;
+  /**
+   * What 0 means, where it is allowed below `min`: "unlimited" for a quota,
+   * "off" for an automatic job.
+   */
+  zero?: "unlimited" | "off";
 }
 
 const KB = 1024;
@@ -32,8 +35,11 @@ export const LIMITS = {
   maxDocumentBytes: { unit: "bytes", min: 64 * KB, max: GB },
   maxUploadBytes: { unit: "bytes", min: 64 * KB, max: GB },
   maxAttachmentBytes: { unit: "bytes", min: 64 * KB, max: 100 * GB },
-  attachmentQuotaBytes: { unit: "bytes", min: 0, max: 1024 * GB, zeroIsUnlimited: true },
-  storageQuotaBytes: { unit: "bytes", min: 0, max: 100 * 1024 * GB, zeroIsUnlimited: true },
+  attachmentQuotaBytes: { unit: "bytes", min: 0, max: 1024 * GB, zero: "unlimited" },
+  storageQuotaBytes: { unit: "bytes", min: 0, max: 100 * 1024 * GB, zero: "unlimited" },
+  // automatic cleanup, run hourly
+  emptyDocumentHours: { unit: "hours", min: 1, max: 24 * 365, zero: "off" },
+  abandonedDocumentDays: { unit: "days", min: 1, max: 3650, zero: "off" },
 } as const satisfies Record<string, LimitSpec>;
 
 export type LimitKey = keyof typeof LIMITS;
@@ -55,15 +61,17 @@ export const SIZE_LIMIT_KEYS: LimitKey[] = [
   "storageQuotaBytes",
 ];
 
+export const CLEANUP_KEYS: LimitKey[] = ["emptyDocumentHours", "abandonedDocumentDays"];
+
 export function isLimitKey(value: string): value is LimitKey {
   return Object.hasOwn(LIMITS, value);
 }
 
-/** Whole numbers inside the range, or zero where zero means unlimited. */
+/** Whole numbers inside the range, or zero where zero means unlimited or off. */
 export function validLimit(key: LimitKey, value: unknown): value is number {
   const spec: LimitSpec = LIMITS[key];
   if (typeof value !== "number" || !Number.isInteger(value)) return false;
-  if (value === 0 && spec.zeroIsUnlimited) return true;
+  if (value === 0 && spec.zero) return true;
   return value >= spec.min && value <= spec.max;
 }
 
@@ -83,6 +91,26 @@ export interface AdminOverview {
     databaseBytes: number;
   };
 }
+
+/** One document as the cleanup preview lists it. */
+export interface CleanupEntry {
+  id: string;
+  title: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** `GET /api/admin/cleanup?days=N` */
+export interface CleanupPreview {
+  empty: { count: number; sample: CleanupEntry[]; olderThanHours: number };
+  abandoned: { count: number; sample: CleanupEntry[]; days: number };
+}
+
+/** `POST /api/admin/cleanup` */
+export type CleanupRequest = { kind: "empty" } | { kind: "abandoned"; days: number };
+
+/** Days the abandoned-document preview offers. */
+export const ABANDONED_CHOICES = [30, 90, 180, 365] as const;
 
 /** `PUT /api/admin/limits` — a subset; null puts a limit back to its default. */
 export type LimitsUpdate = Partial<Record<LimitKey, number | null>>;

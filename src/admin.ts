@@ -4,7 +4,8 @@ import { resolve } from "node:path";
 import { count } from "drizzle-orm";
 import express, { type NextFunction, type Request, type Response, type Router } from "express";
 import rateLimit from "express-rate-limit";
-import type { AdminOverview, LimitsUpdate } from "../shared/admin.js";
+import { ABANDONED_CHOICES, type AdminOverview, type CleanupPreview, type LimitsUpdate } from "../shared/admin.js";
+import { deleteDocuments, findAbandoned, findEmpty, preview } from "./cleanup.js";
 import { db } from "./db/index.js";
 import { documents, expiredDocuments } from "./db/schema.js";
 import { env, isProduction } from "./env.js";
@@ -137,5 +138,49 @@ export function adminRoutes(): Router {
     res.json(result);
   });
 
+  /*
+   * Cleanup: look first, then delete. The preview counts and lists; the
+   * delete finds the same documents again rather than trusting a list from
+   * the browser, so it cannot be pointed at anything that is not empty or
+   * abandoned — and anything opened in between is skipped.
+   */
+  router.get("/api/admin/cleanup", signedIn, (req, res) => {
+    const days = abandonedDays(req.query.days);
+    const olderThanHours = emptyAge();
+    const result: CleanupPreview = {
+      empty: { ...preview(findEmpty(olderThanHours)), olderThanHours },
+      abandoned: { ...preview(findAbandoned(days)), days },
+    };
+    res.set("cache-control", "no-store").json(result);
+  });
+
+  router.post("/api/admin/cleanup", signedIn, express.json({ limit: "1kb" }), (req, res) => {
+    const body = (req.body ?? {}) as { kind?: unknown; days?: unknown };
+    let found;
+    if (body.kind === "empty") found = findEmpty(emptyAge());
+    else if (body.kind === "abandoned" && ABANDONED_CHOICES.includes(body.days as never)) {
+      found = findAbandoned(body.days as number);
+    }
+    else {
+      res.status(400).json({ error: "bad-cleanup" });
+      return;
+    }
+    res.json({ deleted: deleteDocuments(found.map((row) => row.id)) });
+  });
+
   return router;
+}
+
+/**
+ * How old an empty document must be to count. The automatic setting when it
+ * is on; an hour when it is not, which is long enough that nobody is still
+ * on their way to typing into it.
+ */
+function emptyAge(): number {
+  return limits().emptyDocumentHours || 1;
+}
+
+function abandonedDays(value: unknown): number {
+  const days = Number(value);
+  return (ABANDONED_CHOICES as readonly number[]).includes(days) ? days : ABANDONED_CHOICES[1];
 }
