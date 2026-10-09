@@ -177,6 +177,11 @@ export function peekRoom(id: string): Room | undefined {
   return rooms.get(id);
 }
 
+/** Who is in each open room, by room id. */
+export function roomMembers(): Map<string, number> {
+  return new Map([...rooms.values()].map((room) => [room.id, room.members.size]));
+}
+
 /** Present so tests and the shutdown path can see the registry. */
 export function activeRooms(): number {
   return rooms.size;

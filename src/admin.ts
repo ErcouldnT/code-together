@@ -4,10 +4,11 @@ import { resolve } from "node:path";
 import { count } from "drizzle-orm";
 import express, { type NextFunction, type Request, type Response, type Router } from "express";
 import rateLimit from "express-rate-limit";
-import { ABANDONED_CHOICES, type AdminOverview, type CleanupPreview, type LimitsUpdate } from "../shared/admin.js";
+import { ABANDONED_CHOICES, DIRECTORY_SORTS, type AdminOverview, type CleanupPreview, type LimitsUpdate } from "../shared/admin.js";
 import { deleteDocuments, findAbandoned, findEmpty, preview } from "./cleanup.js";
 import { db } from "./db/index.js";
 import { documents, expiredDocuments } from "./db/schema.js";
+import { listDocuments } from "./directory.js";
 import { env, isProduction } from "./env.js";
 import { countExpiring } from "./expiry.js";
 import { roomStats } from "./rooms.js";
@@ -136,6 +137,16 @@ export function adminRoutes(): Router {
       return;
     }
     res.json(result);
+  });
+
+  router.get("/api/admin/documents", signedIn, (req, res) => {
+    const { q, sort, open, offset } = req.query;
+    res.set("cache-control", "no-store").json(listDocuments({
+      query: typeof q === "string" ? q.slice(0, 200) : "",
+      sort: DIRECTORY_SORTS.find((choice) => choice === sort) ?? "updated",
+      openOnly: open === "1",
+      offset: Number(offset) || 0,
+    }));
   });
 
   /*

@@ -12,6 +12,7 @@ import {
 } from "@shared/admin";
 import { language, t } from "../i18n";
 import CleanupCard from "./CleanupCard";
+import DirectoryCard from "./DirectoryCard";
 
 /**
  * /admin: how the server is doing, and the limits it enforces.
@@ -242,6 +243,8 @@ function Dashboard({ overview, onRefresh, onSaved }: DashboardProps) {
           <Stat name={t("admin.tombstones")}>{number.format(stats.tombstones)}</Stat>
         </dl>
       </section>
+
+      <DirectoryCard />
 
       <LimitsForm
         title={t("admin.rateLimits")}

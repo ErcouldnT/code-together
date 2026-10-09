@@ -114,6 +114,13 @@ the moment it is enforced. Changed limits are kept in the database and
 outrank the environment, which only says where each one starts; "Use
 default" hands one back to the environment.
 
+Under the status sits a list of **every document**, newest change first or
+sorted by when it was made or by size, searchable by title or address and
+narrowed to the ones open right now if you like. Each links to the document in
+a new tab, with who is in it, whether it has a password and when it deletes
+itself. Signing in here is not a key to every document: one with a password
+still asks for it.
+
 The screen also clears out documents nobody will come back to. **Empty**
 ones — no text, title, attachment or password, at least an hour old — are
 what a visit to the front page leaves behind when nobody types; **abandoned**
@@ -148,6 +155,7 @@ src/                     Express + Socket.io server
   settings.ts            the limits as they stand, changeable without a restart
   storage.ts             how much the stored files take up, for the quotas
   cleanup.ts             finding and deleting empty and abandoned documents
+  directory.ts           every document, a page at a time, for the admin screen
   documents.ts           load and save a room as a Yjs document
   export.ts              one delta, two file formats
   snapshots.ts           version history: periodic states, and restoring one

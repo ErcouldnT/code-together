@@ -112,5 +112,31 @@ export type CleanupRequest = { kind: "empty" } | { kind: "abandoned"; days: numb
 /** Days the abandoned-document preview offers. */
 export const ABANDONED_CHOICES = [30, 90, 180, 365] as const;
 
+/** One document as the admin screen's directory lists it. */
+export interface DirectoryEntry {
+  id: string;
+  title: string | null;
+  createdAt: number;
+  updatedAt: number;
+  /** what a password guards, or null for an open document */
+  protect: "view" | "edit" | null;
+  expiresAt: number | null;
+  /** the stored Yjs state, which is near enough the document's size */
+  bytes: number;
+  /** people in the room right now */
+  editors: number;
+}
+
+export const DIRECTORY_SORTS = ["updated", "created", "size"] as const;
+export type DirectorySort = (typeof DIRECTORY_SORTS)[number];
+export const DIRECTORY_PAGE = 25;
+
+/** `GET /api/admin/documents?q=&sort=&open=&offset=` */
+export interface DirectoryPage {
+  total: number;
+  offset: number;
+  documents: DirectoryEntry[];
+}
+
 /** `PUT /api/admin/limits` — a subset; null puts a limit back to its default. */
 export type LimitsUpdate = Partial<Record<LimitKey, number | null>>;

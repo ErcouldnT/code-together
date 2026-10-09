@@ -1922,3 +1922,124 @@ button.expiry-badge {
   opacity: 0.5;
   cursor: default;
 }
+
+/* The document directory: a search row, then one line per document. */
+.admin-directory-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-directory-controls select {
+  width: auto;
+}
+
+.admin-directory-search {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.admin-directory {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-doc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  border-top: 1px solid var(--border);
+  padding: 0.55rem 0;
+}
+
+.admin-doc-link {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 14rem;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.admin-doc-link:hover .admin-doc-title,
+.admin-doc-link:focus-visible .admin-doc-title {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.admin-doc-title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-doc-id {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.admin-doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-badge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  white-space: nowrap;
+}
+
+.admin-badge-live {
+  border-color: #15803d;
+  color: #15803d;
+}
+
+@media (prefers-color-scheme: dark) {
+  .admin-badge-live {
+    border-color: #4ade80;
+    color: #4ade80;
+  }
+}
+
+.admin-pager {
+  margin-top: 0.5rem;
+}
+
+.admin-pager .admin-muted-inline {
+  margin-right: auto;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 40em) {
+  /* on a phone the title takes the whole line and the details go under it */
+  .admin-doc-link {
+    flex-basis: 100%;
+  }
+
+  .admin-directory-controls select {
+    flex: 1 1 auto;
+  }
+}
