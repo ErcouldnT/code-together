@@ -19,7 +19,7 @@ Quill.register("modules/cursors", QuillCursors);
 const TOOLBAR_OPTIONS = [
   [{ header: [1, 2, 3, 4, 5, 6, false] }],
   [{ font: [] }],
-  [{ list: "ordered" }, { list: "bullet" }],
+  [{ list: "ordered" }, { list: "bullet" }, { list: "check" }],
   ["bold", "italic", "underline"],
   [{ color: [] }, { background: [] }],
   [{ script: "sub" }, { script: "super" }],

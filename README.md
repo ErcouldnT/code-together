@@ -21,8 +21,11 @@ copy of that blob is broadcast to everyone in the room on every keystroke.
 
 Markdown typed into the document turns into what it means as soon as it is
 unambiguous: `# ` starts a heading (up to `###### `), `> ` a quote, `- ` or
-`1. ` a list, and a line of three backticks followed by Enter a code block.
-One undo gives back the characters you typed.
+`1. ` a list, `[ ] ` (or `- [ ] `) a task, and a line of three backticks
+followed by Enter a code block. One undo gives back the characters you typed.
+A task is ticked by clicking its box, by anyone who can edit; the toolbar has
+a button for task lists too, and both exports keep the ticks — `- [x]` in
+Markdown, a checkbox in HTML.
 
 Code blocks are coloured by [highlight.js](https://highlightjs.org). A block
 nobody has chosen a language for guesses one, and its picker says what it

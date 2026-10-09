@@ -124,6 +124,13 @@ function cssValue(value: string): string {
   return /^[#a-zA-Z0-9(),.%\s-]+$/.test(value) ? value.trim() : "inherit";
 }
 
+/** A task list item's state — true when ticked — or null for any other line. */
+function taskState(list: unknown): boolean | null {
+  if (list === "checked") return true;
+  if (list === "unchecked") return false;
+  return null;
+}
+
 function blockTag(block: Record<string, unknown>): string {
   const header = Number(block.header);
   if (Number.isInteger(header) && header >= 1 && header <= 6) return `h${header}`;
@@ -158,7 +165,9 @@ export function toHtml(ops: DeltaOp[]): string {
         out.push(`<${wanted}>`);
         open.push(wanted);
       }
-      out.push(`<li>${content}</li>`);
+      const task = taskState(line.block.list);
+      const box = task === null ? "" : `<input type="checkbox" disabled${task ? " checked" : ""}> `;
+      out.push(`<li>${box}${content}</li>`);
       continue;
     }
 
@@ -186,6 +195,7 @@ body { margin: 0 auto; max-width: 40rem; padding: 2rem 1rem; font: 16px/1.6 Geor
 img { max-width: 100%; }
 pre { background: #f0f0f0; border-radius: 3px; padding: 0.75rem; overflow-x: auto; }
 blockquote { border-left: 4px solid #ccc; margin-left: 0; padding-left: 1rem; }
+li:has(> input[type="checkbox"]) { list-style: none; }
 </style>
 </head>
 <body>
@@ -276,6 +286,7 @@ export function toMarkdown(ops: DeltaOp[]): string {
     if (Number.isInteger(header) && header >= 1 && header <= 6) out.push(`${"#".repeat(header)} ${content}`);
     else if (block.blockquote) out.push(`> ${content}`);
     else if (block.list === "ordered") out.push(`${indent}1. ${content}`);
+    else if (taskState(block.list) !== null) out.push(`${indent}- [${taskState(block.list) ? "x" : " "}] ${content}`);
     else if (block.list) out.push(`${indent}- ${content}`);
     else out.push(content);
   }

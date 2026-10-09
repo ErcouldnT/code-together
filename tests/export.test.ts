@@ -156,6 +156,29 @@ describe("Markdown export", () => {
     assert.equal(md, "```\nconst a = 1;\nconst b = 2;\n```\nafter\n");
   });
 
+  it("writes a task list as GitHub writes one", () => {
+    const md = toMarkdown([
+      { insert: "done" },
+      { insert: "\n", attributes: { list: "checked" } },
+      { insert: "todo" },
+      { insert: "\n", attributes: { list: "unchecked" } },
+    ]);
+    assert.equal(md, "- [x] done\n- [ ] todo\n");
+  });
+
+  it("gives a task list item a ticked or unticked box in HTML", () => {
+    const html = toHtml([
+      { insert: "done" },
+      { insert: "\n", attributes: { list: "checked" } },
+      { insert: "todo" },
+      { insert: "\n", attributes: { list: "unchecked" } },
+    ]);
+    assert.equal(
+      html,
+      '<ul>\n<li><input type="checkbox" disabled checked> done</li>\n<li><input type="checkbox" disabled> todo</li>\n</ul>',
+    );
+  });
+
   it("names a chosen language on the fence, and only a chosen one", () => {
     const md = toMarkdown([
       { insert: "print(1)" },
